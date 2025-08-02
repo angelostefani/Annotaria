@@ -74,6 +74,15 @@ class AnnotationCreate(AnnotationBase):
     pass
 
 
+class AnnotationUpdate(BaseModel):
+    image_id: int | None = None
+    label: str | None = None
+    x: float | None = None
+    y: float | None = None
+    width: float | None = None
+    height: float | None = None
+
+
 class Annotation(AnnotationBase):
     id: int
     annotated_at: datetime | None = None
