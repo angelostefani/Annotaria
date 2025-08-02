@@ -1,14 +1,8 @@
-# Struttura del Database – AIRFARM
-
-Questo documento descrive la struttura del database relazionale utilizzato dall’applicazione AIRFARM.
+# 🗃️ Struttura del Database – Annotaria
 
 ---
 
-## 🗃️ Tabelle principali
-
-### 1. `images`
-
-Contiene le immagini caricate dal sistema e i metadati EXIF associati.
+## 1. `images`
 
 ```sql
 CREATE TABLE images (
@@ -31,7 +25,6 @@ CREATE TABLE images (
     exif_orientation TEXT,
     exif_image_width INTEGER,
     exif_image_height INTEGER,
-
     exif_drone_model TEXT,
     exif_flight_id TEXT,
     exif_pitch FLOAT,
@@ -40,11 +33,7 @@ CREATE TABLE images (
 );
 ```
 
----
-
-### 2. `questions`
-
-Contiene le domande comuni da porre per ciascuna immagine.
+## 2. `questions`
 
 ```sql
 CREATE TABLE questions (
@@ -53,11 +42,7 @@ CREATE TABLE questions (
 );
 ```
 
----
-
-### 3. `options`
-
-Opzioni a scelta multipla associate a ciascuna domanda.
+## 3. `options`
 
 ```sql
 CREATE TABLE options (
@@ -67,11 +52,7 @@ CREATE TABLE options (
 );
 ```
 
----
-
-### 4. `answers`
-
-Risposte fornite dagli utenti per ogni immagine e domanda.
+## 4. `answers`
 
 ```sql
 CREATE TABLE answers (
@@ -83,11 +64,7 @@ CREATE TABLE answers (
 );
 ```
 
----
-
-### 5. `annotations`
-
-Contiene le annotazioni grafiche fatte sulle immagini.
+## 5. `annotations`
 
 ```sql
 CREATE TABLE annotations (
@@ -101,11 +78,3 @@ CREATE TABLE annotations (
     annotated_at TIMESTAMP DEFAULT NOW()
 );
 ```
-
----
-
-## 🔐 Note aggiuntive
-
-- Le immagini sono associate a metadati EXIF che includono anche parametri specifici per immagini acquisite da droni.
-- Le domande sono comuni a tutte le immagini.
-- Il database è progettato per supportare il versioning futuro delle annotazioni.

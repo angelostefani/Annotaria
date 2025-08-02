@@ -1,111 +1,87 @@
 # Annotaria
-Annotaria is a lightweight and modular platform for data collection and annotation, designed to streamline the creation of datasets for training artificial intelligence models. It supports image inputs, interactive region selection, and multiple-choice questions, with database storage and a fully customizable interface.
 
-# AIRFARM
-
-**AIRFARM** è un'applicazione web per la raccolta e annotazione di dati da immagini, finalizzata alla creazione di dataset per l'addestramento di reti neurali.
+**Annotaria** è un'applicazione web in Python per la raccolta e annotazione di dati da immagini, finalizzata alla creazione di dataset strutturati per l'addestramento di reti neurali.
 
 ---
 
-## 📖 Panoramica del progetto
+## 📖 Panoramica
 
-- Supporta immagini **JPG, TIFF, RAW**, anche provenienti da **droni**.
-- Estrazione e salvataggio completo dei **metadati EXIF**.
-- Caricamento e visualizzazione delle immagini da una **directory configurabile**.
-- **Domande a scelta multipla**, comuni a tutte le immagini.
-- **Annotazione interattiva**: l’utente seleziona un’area dell’immagine e assegna una **label**.
-- **Salvataggio** delle risposte e annotazioni in un **database relazionale**.
-- Obiettivo finale: dataset per **addestramento supervisionato** di modelli ML.
+- Supporta immagini **JPG, TIFF, RAW**, anche da **droni**.
+- Estrae e salva automaticamente i **metadati EXIF**.
+- Visualizza immagini da una **directory configurabile**.
+- Presenta domande a **scelta multipla**, comuni a tutte le immagini.
+- Permette annotazioni grafiche (bounding box) con **label associata**.
+- Salva risposte e annotazioni in un **database relazionale**.
+
+---
+
+## 🧱 Struttura dei file di documentazione
+
+- [📂 API REST](./docs/API_REST.md)
+- [🗃️ Struttura del Database](./docs/Database_Structure.md)
+- [🧪 Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
+- [🧰 Configurazione e Ambiente](./docs/Setup.md) *(opzionale)*
 
 ---
 
 ## 🛠️ Tecnologie utilizzate
 
 - **Python 3.10+**
-- **FastAPI** (API REST)
+- **FastAPI** per le API REST
 - **SQLAlchemy** (ORM)
-- **PostgreSQL** (o SQLite)
-- **JavaScript + HTML5 Canvas (Fabric.js)** per annotazioni
-- **Docker** (opzionale)
-
----
-
-## 📂 Struttura del progetto
-
-```
-airfarm/
-│
-├── main.py                  # FastAPI app principale
-├── database.py              # Connessione al database
-├── models.py                # Modelli SQLAlchemy
-├── schemas/                 # Modelli Pydantic
-├── static/                  # JS/CSS
-├── templates/               # HTML
-├── image_data/              # Immagini da annotare
-└── data/questions.json      # Dataset di domande iniziali (opzionale)
-```
-
----
-
-## 🗃️ Schema del database
-
-Vedi il file [airfarm_database_structure.md](./airfarm_database_structure.md) per i dettagli completi delle tabelle.
-
----
-
-## 🚀 API REST principali
-
-| Metodo | Endpoint                            | Descrizione                                      |
-|--------|-------------------------------------|--------------------------------------------------|
-| GET    | `/images`                           | Restituisce le immagini e sincronizza la cartella |
-| POST   | `/questions/`                       | Crea una nuova domanda                          |
-| GET    | `/questions/`                       | Elenca tutte le domande                         |
-| POST   | `/questions/{id}/options/`          | Aggiunge un’opzione a una domanda               |
-| GET    | `/questions/{id}/options/`          | Elenca le opzioni di una domanda                |
-| POST   | `/answers/`                         | Salva la risposta dell’utente                   |
-| POST   | `/annotations/`                     | Salva un’annotazione grafica                    |
+- **PostgreSQL** o **SQLite**
+- **HTML + JavaScript (Canvas/Fabric.js)** per annotazioni grafiche
+- **Docker** (opzionale, per ambienti isolati)
 
 ---
 
 ## ▶️ Avvio rapido
 
-1. Crea `.env` con:
+1. Crea un file `.env`:
 
 ```dotenv
-DATABASE_URL=postgresql://user:password@localhost:5432/airfarm
+DATABASE_URL=postgresql://user:password@localhost:5432/annotaria
 IMAGE_DIR=./image_data
 ```
 
-2. Avvia il server:
+2. Avvia l'applicazione:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-3. Visita [http://localhost:8000/docs](http://localhost:8000/docs) per testare le API.
+3. Visita: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🧪 Esempio di risposta
+## 📁 Struttura del progetto
 
-```json
-{
-  "image_id": 1,
-  "question_id": 2,
-  "selected_option_id": 8,
-  "answered_at": "2025-08-01T12:34:56"
-}
+```
+annotaria/
+│
+├── main.py                  # Entrypoint FastAPI
+├── database.py              # Configurazione SQLAlchemy
+├── models.py                # Definizione modelli database
+├── schemas/                 # Modelli Pydantic per le API
+├── static/                  # JS e CSS
+├── templates/               # Template HTML (opzionale)
+├── image_data/              # Cartella immagini configurabile
+├── data/questions.json      # Dataset domande iniziali
+└── docs/                    # Documentazione Markdown
+    ├── API_REST.md
+    ├── Database_Structure.md
+    └── Setup.md
 ```
 
 ---
 
 ## 📈 Sviluppi futuri
 
-- CRUD amministrativo (immagini, domande, risposte, annotazioni)
-- Interfaccia Streamlit o React frontend
-- Versioning immagini e annotazioni
-- Esportazione CSV/JSON per modelli ML
-- Docker + docker-compose
+- Interfaccia amministrativa CRUD per immagini, domande, annotazioni
+- Versionamento immagini/annotazioni
+- Interfaccia Streamlit o frontend React
+- Esportazione dati per ML (CSV/JSON)
+- Container Docker (Dockerfile + docker-compose)
 
 ---
 
