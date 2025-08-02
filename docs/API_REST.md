@@ -154,13 +154,53 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label).
 }
 ```
 
+### `GET /annotations/{image_id}`
+Restituisce tutte le annotazioni associate a una determinata immagine.
+
+**Response 200 OK**
+```json
+[
+  {
+    "id": 14,
+    "image_id": 1,
+    "label": "foglia danneggiata",
+    "x": 120.5,
+    "y": 80.2,
+    "width": 50,
+    "height": 30,
+    "annotated_at": "2025-08-01T15:14:00"
+  }
+]
+```
+
+### `PUT /annotations/{annotation_id}`
+Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modificati.
+
+**Request Body**
+```json
+{
+  "label": "foglia sana",
+  "x": 130.0
+}
+```
+
+**Response 200 OK**
+```json
+{
+  "id": 14,
+  "image_id": 1,
+  "label": "foglia sana",
+  "x": 130.0,
+  "y": 80.2,
+  "width": 50,
+  "height": 30,
+  "annotated_at": "2025-08-01T15:14:00"
+}
+```
+
+### `DELETE /annotations/{annotation_id}`
+Elimina un'annotazione esistente.
+
+**Response 204 No Content**
+
 ---
-
-## 🛠️ Endpoints in sviluppo
-
-- `PUT /questions/{id}` – Modifica una domanda
-- `DELETE /questions/{id}` – Elimina una domanda
-- `PUT /options/{id}` – Modifica un’opzione
-- `DELETE /options/{id}` – Elimina un’opzione
-- `GET /answers/{image_id}` – Tutte le risposte per un'immagine
-- `GET /annotations/{image_id}` – Tutte le annotazioni per immagine

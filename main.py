@@ -127,3 +127,25 @@ def create_annotation(annotation: schemas.AnnotationCreate, db: Session = Depend
 @app.get("/annotations/{image_id}", response_model=List[schemas.Annotation])
 def list_annotations(image_id: int, db: Session = Depends(get_db)):
     return db.query(models.Annotation).filter_by(image_id=image_id).all()
+
+
+@app.put("/annotations/{annotation_id}", response_model=schemas.Annotation)
+def update_annotation(annotation_id: int, annotation: schemas.AnnotationUpdate, db: Session = Depends(get_db)):
+    db_annotation = db.query(models.Annotation).filter_by(id=annotation_id).first()
+    if not db_annotation:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    for field, value in annotation.dict(exclude_unset=True).items():
+        setattr(db_annotation, field, value)
+    db.commit()
+    db.refresh(db_annotation)
+    return db_annotation
+
+
+@app.delete("/annotations/{annotation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_annotation(annotation_id: int, db: Session = Depends(get_db)):
+    db_annotation = db.query(models.Annotation).filter_by(id=annotation_id).first()
+    if not db_annotation:
+        raise HTTPException(status_code=404, detail="Annotation not found")
+    db.delete(db_annotation)
+    db.commit()
+    return None
