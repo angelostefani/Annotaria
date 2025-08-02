@@ -7,6 +7,25 @@ class Image(BaseModel):
     id: int
     filename: str
     path: str
+    exif_datetime: str | None = None
+    exif_gps_lat: float | None = None
+    exif_gps_lon: float | None = None
+    exif_gps_alt: float | None = None
+    exif_camera_make: str | None = None
+    exif_camera_model: str | None = None
+    exif_lens_model: str | None = None
+    exif_focal_length: float | None = None
+    exif_aperture: float | None = None
+    exif_iso: int | None = None
+    exif_shutter_speed: str | None = None
+    exif_orientation: str | None = None
+    exif_image_width: int | None = None
+    exif_image_height: int | None = None
+    exif_drone_model: str | None = None
+    exif_flight_id: str | None = None
+    exif_pitch: float | None = None
+    exif_roll: float | None = None
+    exif_yaw: float | None = None
 
     class Config:
         orm_mode = True

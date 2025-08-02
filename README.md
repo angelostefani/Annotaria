@@ -7,11 +7,22 @@
 ## 📖 Panoramica
 
 - Supporta immagini **JPG, TIFF, RAW**, anche da **droni**.
-- Estrae e salva automaticamente i **metadati EXIF**.
+- Estrae e salva automaticamente i **metadati EXIF** (data/ora, coordinate GPS, impostazioni della fotocamera e informazioni sul drone).
 - Visualizza immagini da una **directory configurabile**.
 - Presenta domande a **scelta multipla**, comuni a tutte le immagini.
 - Permette annotazioni grafiche (bounding box) con **label associata**.
 - Salva risposte e annotazioni in un **database relazionale**.
+
+### Metadati EXIF estratti
+
+Per ogni immagine vengono raccolti e salvati i seguenti metadati (quando disponibili):
+
+- `exif_datetime`
+- `exif_gps_lat`, `exif_gps_lon`, `exif_gps_alt`
+- `exif_camera_make`, `exif_camera_model`, `exif_lens_model`
+- `exif_focal_length`, `exif_aperture`, `exif_iso`, `exif_shutter_speed`
+- `exif_orientation`, `exif_image_width`, `exif_image_height`
+- `exif_drone_model`, `exif_flight_id`, `exif_pitch`, `exif_roll`, `exif_yaw`
 
 ---
 

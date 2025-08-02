@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List
 
 from fastapi import FastAPI, Depends, HTTPException, status
+from PIL import Image as PILImage, ExifTags
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -17,13 +18,108 @@ IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "./image_data"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _convert_to_degrees(value):
+    """Convert GPS coordinates stored as rationals to float degrees."""
+    d, m, s = value
+    return (
+        d[0] / d[1]
+        + (m[0] / m[1]) / 60
+        + (s[0] / s[1]) / 3600
+    )
+
+
 @app.get("/images", response_model=List[schemas.Image])
 def read_images(db: Session = Depends(get_db)):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             existing = db.query(models.Image).filter_by(filename=file.name).first()
             if not existing:
-                db_image = models.Image(filename=file.name, path=str(file))
+                exif_data = {}
+                try:
+                    with PILImage.open(file) as img:
+                        raw_exif = img._getexif() or {}
+                        exif = {ExifTags.TAGS.get(k, k): v for k, v in raw_exif.items()}
+
+                        exif_data["exif_datetime"] = exif.get("DateTimeOriginal") or exif.get("DateTime")
+                        exif_data["exif_camera_make"] = exif.get("Make")
+                        exif_data["exif_camera_model"] = exif.get("Model")
+                        exif_data["exif_lens_model"] = exif.get("LensModel")
+
+                        fl = exif.get("FocalLength")
+                        if isinstance(fl, tuple) and fl[1]:
+                            exif_data["exif_focal_length"] = fl[0] / fl[1]
+                        else:
+                            exif_data["exif_focal_length"] = fl
+
+                        fnum = exif.get("FNumber")
+                        if isinstance(fnum, tuple) and fnum[1]:
+                            exif_data["exif_aperture"] = fnum[0] / fnum[1]
+                        else:
+                            exif_data["exif_aperture"] = fnum
+
+                        iso = exif.get("ISOSpeedRatings") or exif.get("PhotographicSensitivity")
+                        if isinstance(iso, (list, tuple)):
+                            iso = iso[0]
+                        exif_data["exif_iso"] = iso
+
+                        shutter = exif.get("ExposureTime")
+                        if isinstance(shutter, tuple) and shutter[1]:
+                            exif_data["exif_shutter_speed"] = f"{shutter[0]}/{shutter[1]}"
+                        else:
+                            exif_data["exif_shutter_speed"] = str(shutter) if shutter else None
+
+                        orientation = exif.get("Orientation")
+                        exif_data["exif_orientation"] = str(orientation) if orientation else None
+
+                        width = exif.get("ExifImageWidth") or img.width
+                        height = exif.get("ExifImageHeight") or img.height
+                        exif_data["exif_image_width"] = int(width) if width else None
+                        exif_data["exif_image_height"] = int(height) if height else None
+
+                        gps_info = exif.get("GPSInfo")
+                        if isinstance(gps_info, dict):
+                            gps = {ExifTags.GPSTAGS.get(k, k): v for k, v in gps_info.items()}
+                            lat = gps.get("GPSLatitude")
+                            lat_ref = gps.get("GPSLatitudeRef")
+                            lon = gps.get("GPSLongitude")
+                            lon_ref = gps.get("GPSLongitudeRef")
+                            alt = gps.get("GPSAltitude")
+
+                            if lat and lat_ref:
+                                try:
+                                    exif_data["exif_gps_lat"] = _convert_to_degrees(lat) * (
+                                        1 if lat_ref == "N" else -1
+                                    )
+                                except Exception:
+                                    pass
+                            if lon and lon_ref:
+                                try:
+                                    exif_data["exif_gps_lon"] = _convert_to_degrees(lon) * (
+                                        1 if lon_ref == "E" else -1
+                                    )
+                                except Exception:
+                                    pass
+                            if alt:
+                                if isinstance(alt, tuple) and alt[1]:
+                                    exif_data["exif_gps_alt"] = alt[0] / alt[1]
+                                else:
+                                    exif_data["exif_gps_alt"] = alt
+
+                        exif_data["exif_drone_model"] = exif.get("CameraModelName") or exif.get("Make")
+                        exif_data["exif_flight_id"] = exif.get("FlightID")
+                        exif_data["exif_pitch"] = (
+                            exif.get("GimbalPitchDegree") or exif.get("Pitch")
+                        )
+                        exif_data["exif_roll"] = exif.get("GimbalRollDegree") or exif.get("Roll")
+                        exif_data["exif_yaw"] = exif.get("GimbalYawDegree") or exif.get("Yaw")
+                except Exception:
+                    exif_data = {}
+
+                db_image = models.Image(
+                    filename=file.name,
+                    path=str(file),
+                    **exif_data,
+                )
                 db.add(db_image)
     db.commit()
     return db.query(models.Image).all()

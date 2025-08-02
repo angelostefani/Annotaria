@@ -10,6 +10,11 @@ Prefisso base: `http://localhost:8000/`
 ### `GET /images`
 Restituisce l’elenco delle immagini disponibili nella directory configurata e sincronizza il DB.
 
+Ogni immagine include i metadati EXIF estratti (se presenti): `exif_datetime`, `exif_gps_lat`, `exif_gps_lon`, `exif_gps_alt`,
+`exif_camera_make`, `exif_camera_model`, `exif_lens_model`, `exif_focal_length`, `exif_aperture`, `exif_iso`,
+`exif_shutter_speed`, `exif_orientation`, `exif_image_width`, `exif_image_height`, `exif_drone_model`, `exif_flight_id`,
+`exif_pitch`, `exif_roll`, `exif_yaw`.
+
 **Response 200 OK**
 ```json
 [
@@ -17,8 +22,13 @@ Restituisce l’elenco delle immagini disponibili nella directory configurata e 
     "id": 1,
     "filename": "immagine1.jpg",
     "url": "/static/immagine1.jpg",
-    "exif_camera_model": "DJI Mavic Air 2",
-    "exif_datetime": "2025-07-31 14:30:00"
+    "exif_datetime": "2025-07-31 14:30:00",
+    "exif_gps_lat": 45.1234,
+    "exif_gps_lon": 9.1234,
+    "exif_camera_make": "DJI",
+    "exif_camera_model": "Mavic Air 2",
+    "exif_focal_length": 24.0,
+    "exif_iso": 100
   }
 ]
 ```
