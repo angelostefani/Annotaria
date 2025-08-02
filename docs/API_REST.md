@@ -23,6 +23,25 @@ Restituisce l’elenco delle immagini disponibili nella directory configurata e 
 ]
 ```
 
+### `POST /images/upload`
+Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF.
+
+**Request** `multipart/form-data`
+```
+file=<binary>
+```
+
+**Response 201 Created**
+```json
+{
+  "id": 2,
+  "filename": "nuova.jpg",
+  "path": "./image_data/nuova.jpg",
+  "exif_camera_model": "DJI Mavic Air 2",
+  "exif_datetime": "2025-07-31 14:30:00"
+}
+```
+
 ---
 
 ## ❓ DOMANDE E OPZIONI

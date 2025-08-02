@@ -1,9 +1,11 @@
 import os
+import shutil
 from pathlib import Path
 from typing import List
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+from PIL import Image as PILImage, ExifTags
 
 from database import Base, engine, get_db
 import models
@@ -17,16 +19,116 @@ IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "./image_data"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _ratio_to_float(value):
+    return value[0] / value[1] if isinstance(value, tuple) else float(value)
+
+
+def _convert_to_degrees(value, ref):
+    d, m, s = value
+    decimal = _ratio_to_float(d) + _ratio_to_float(m) / 60 + _ratio_to_float(s) / 3600
+    return -decimal if ref in ["S", "W"] else decimal
+
+
+def extract_exif(path: Path):
+    data = {}
+    try:
+        with PILImage.open(path) as img:
+            exif = img._getexif() or {}
+    except Exception:
+        return data
+
+    gps_info = {}
+    for tag_id, value in exif.items():
+        tag = ExifTags.TAGS.get(tag_id, tag_id)
+        if tag == "DateTime":
+            data["exif_datetime"] = value
+        elif tag == "Make":
+            data["exif_camera_make"] = value
+        elif tag == "Model":
+            data["exif_camera_model"] = value
+        elif tag == "LensModel":
+            data["exif_lens_model"] = value
+        elif tag == "FocalLength":
+            data["exif_focal_length"] = _ratio_to_float(value)
+        elif tag in ("FNumber", "ApertureValue"):
+            data["exif_aperture"] = _ratio_to_float(value)
+        elif tag in ("ISOSpeedRatings", "PhotographicSensitivity"):
+            data["exif_iso"] = int(_ratio_to_float(value))
+        elif tag in ("ShutterSpeedValue", "ExposureTime"):
+            data["exif_shutter_speed"] = str(value)
+        elif tag == "Orientation":
+            data["exif_orientation"] = str(value)
+        elif tag == "ImageWidth":
+            data["exif_image_width"] = int(value)
+        elif tag == "ImageLength":
+            data["exif_image_height"] = int(value)
+        elif tag == "GPSInfo":
+            for t in value:
+                sub_tag = ExifTags.GPSTAGS.get(t, t)
+                gps_info[sub_tag] = value[t]
+
+    if gps_info:
+        lat = gps_info.get("GPSLatitude")
+        lat_ref = gps_info.get("GPSLatitudeRef")
+        lon = gps_info.get("GPSLongitude")
+        lon_ref = gps_info.get("GPSLongitudeRef")
+        alt = gps_info.get("GPSAltitude")
+        alt_ref = gps_info.get("GPSAltitudeRef")
+        if lat and lat_ref:
+            data["exif_gps_lat"] = _convert_to_degrees(lat, lat_ref)
+        if lon and lon_ref:
+            data["exif_gps_lon"] = _convert_to_degrees(lon, lon_ref)
+        if alt:
+            altitude = _ratio_to_float(alt)
+            if alt_ref == 1:
+                altitude = -altitude
+            data["exif_gps_alt"] = altitude
+
+    return data
+
+
+def register_image(path: Path, db: Session):
+    filename = path.name
+    existing = db.query(models.Image).filter_by(filename=filename).first()
+    exif_data = extract_exif(path)
+    if existing:
+        for key, value in exif_data.items():
+            setattr(existing, key, value)
+        existing.path = str(path)
+        db.commit()
+        db.refresh(existing)
+        return existing
+    db_image = models.Image(filename=filename, path=str(path), **exif_data)
+    db.add(db_image)
+    db.commit()
+    db.refresh(db_image)
+    return db_image
+
+
 @app.get("/images", response_model=List[schemas.Image])
 def read_images(db: Session = Depends(get_db)):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
-            existing = db.query(models.Image).filter_by(filename=file.name).first()
-            if not existing:
-                db_image = models.Image(filename=file.name, path=str(file))
-                db.add(db_image)
-    db.commit()
+            register_image(file, db)
     return db.query(models.Image).all()
+
+
+@app.post(
+    "/images/upload",
+    response_model=schemas.ImageDetail,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_image(
+    file: UploadFile = File(..., description="Immagine da caricare"),
+    db: Session = Depends(get_db),
+):
+    """Carica un'immagine, salva il file ed estrae i metadati EXIF."""
+    file_path = IMAGE_DIR / file.filename
+    if file_path.exists():
+        raise HTTPException(status_code=400, detail="File already exists")
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return register_image(file_path, db)
 
 
 @app.post("/questions/", response_model=schemas.Question)
