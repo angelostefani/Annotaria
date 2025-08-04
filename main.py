@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -16,9 +16,7 @@ from models import User as UserModel
 
 class AppSettings(BaseSettings):
     allowed_origins: str = "*"
-
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
 settings = AppSettings()
