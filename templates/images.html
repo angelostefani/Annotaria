@@ -12,6 +12,7 @@
 <td>{{ img.id }}</td>
 <td>{{ img.filename }}</td>
 <td>
+    <a href="/ui/images/{{ img.id }}" class="btn btn-sm btn-primary">View</a>
     <a href="/ui/images/{{ img.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
     <form method="post" action="/ui/images/{{ img.id }}/delete" class="d-inline">
         <button type="submit" class="btn btn-sm btn-danger">Delete</button>
