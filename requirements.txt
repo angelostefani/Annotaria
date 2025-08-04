@@ -7,3 +7,4 @@ python-jose
 python-multipart
 pillow
 jinja2
+pydantic-settings
