@@ -12,6 +12,9 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+    answers = relationship("Answer", back_populates="user")
+    annotations = relationship("Annotation", back_populates="user")
+
 
 class Image(Base):
     __tablename__ = "images"
@@ -73,11 +76,13 @@ class Answer(Base):
     image_id = Column(Integer, ForeignKey("images.id"), nullable=False)
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     selected_option_id = Column(Integer, ForeignKey("options.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     answered_at = Column(DateTime(timezone=True), server_default=func.now())
 
     image = relationship("Image", back_populates="answers")
     question = relationship("Question", back_populates="answers")
     selected_option = relationship("Option", back_populates="answers")
+    user = relationship("User", back_populates="answers")
 
 
 class Annotation(Base):
@@ -90,6 +95,8 @@ class Annotation(Base):
     y = Column(Float, nullable=False)
     width = Column(Float, nullable=False)
     height = Column(Float, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     annotated_at = Column(DateTime(timezone=True), server_default=func.now())
 
     image = relationship("Image", back_populates="annotations")
+    user = relationship("User", back_populates="annotations")

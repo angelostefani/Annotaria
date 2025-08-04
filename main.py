@@ -27,8 +27,9 @@ from schemas import (
     QuestionCreate,
     Option as OptionSchema,
     OptionCreate,
-    Answer as AnswerSchema,
-    AnswerCreate,
+)
+from schemas.answer import Answer as AnswerSchema, AnswerCreate
+from schemas.annotation import (
     Annotation as AnnotationSchema,
     AnnotationCreate,
     AnnotationUpdate,
@@ -304,8 +305,12 @@ def list_options(question_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/answers/", response_model=AnswerSchema)
-def create_answer(answer: AnswerCreate, db: Session = Depends(get_db)):
-    db_answer = AnswerModel(**answer.dict())
+def create_answer(
+    answer: AnswerCreate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    db_answer = AnswerModel(**answer.dict(), user_id=current_user.id)
     db.add(db_answer)
     db.commit()
     db.refresh(db_answer)
@@ -313,13 +318,25 @@ def create_answer(answer: AnswerCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/answers/{image_id}", response_model=List[AnswerSchema])
-def list_answers(image_id: int, db: Session = Depends(get_db)):
-    return db.query(AnswerModel).filter_by(image_id=image_id).all()
+def list_answers(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    return (
+        db.query(AnswerModel)
+        .filter_by(image_id=image_id, user_id=current_user.id)
+        .all()
+    )
 
 
 @app.post("/annotations/", response_model=AnnotationSchema)
-def create_annotation(annotation: AnnotationCreate, db: Session = Depends(get_db)):
-    db_annotation = AnnotationModel(**annotation.dict())
+def create_annotation(
+    annotation: AnnotationCreate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    db_annotation = AnnotationModel(**annotation.dict(), user_id=current_user.id)
     db.add(db_annotation)
     db.commit()
     db.refresh(db_annotation)
@@ -327,8 +344,16 @@ def create_annotation(annotation: AnnotationCreate, db: Session = Depends(get_db
 
 
 @app.get("/annotations/{image_id}", response_model=List[AnnotationSchema])
-def list_annotations(image_id: int, db: Session = Depends(get_db)):
-    return db.query(AnnotationModel).filter_by(image_id=image_id).all()
+def list_annotations(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    return (
+        db.query(AnnotationModel)
+        .filter_by(image_id=image_id, user_id=current_user.id)
+        .all()
+    )
 
 
 @app.put("/annotations/{annotation_id}", response_model=AnnotationSchema)
