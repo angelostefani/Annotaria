@@ -3,10 +3,16 @@
 <h1>{% if image %}Edit Image{% else %}Upload Image{% endif %}</h1>
 <form method="post" enctype="multipart/form-data" {% if image %}action="/ui/images/{{ image.id }}/edit"{% else %}action="/ui/images/upload"{% endif %}>
 {% if image %}
-<label>Filename: <input type="text" name="filename" value="{{ image.filename }}"></label><br>
+<div class="mb-3">
+    <label for="filename" class="form-label">Filename</label>
+    <input type="text" class="form-control" id="filename" name="filename" value="{{ image.filename }}">
+</div>
 {% else %}
-<label>File: <input type="file" name="file"></label><br>
+<div class="mb-3">
+    <label for="file" class="form-label">File</label>
+    <input type="file" class="form-control" id="file" name="file">
+</div>
 {% endif %}
-<button type="submit">Submit</button>
+<button type="submit" class="btn btn-primary">Submit</button>
 </form>
 {% endblock %}

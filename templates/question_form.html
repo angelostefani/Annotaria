@@ -2,7 +2,10 @@
 {% block content %}
 <h1>{% if question %}Edit Question{% else %}New Question{% endif %}</h1>
 <form method="post" action="{% if question %}/ui/questions/{{question.id}}/edit{% else %}/ui/questions/create{% endif %}">
-<input type="text" name="question_text" value="{{ question.question_text if question else '' }}">
-<button type="submit">Save</button>
+<div class="mb-3">
+    <label for="question_text" class="form-label">Question Text</label>
+    <input type="text" id="question_text" name="question_text" class="form-control" value="{{ question.question_text if question else '' }}">
+</div>
+<button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}
