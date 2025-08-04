@@ -2,17 +2,37 @@ import os
 from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from pydantic import BaseSettings
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 from models import User as UserModel
 
+
+class AppSettings(BaseSettings):
+    allowed_origins: str = "*"
+
+    class Config:
+        env_file = ".env"
+
+
+settings = AppSettings()
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in settings.allowed_origins.split(",")],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "secret")
 ALGORITHM = "HS256"
@@ -60,6 +80,7 @@ def get_current_user(
     return user
 
 from routers import annotations, answers, images, questions, users, ui
+from routers.images import IMAGE_DIR
 
 app.include_router(images.router)
 app.include_router(questions.router)
@@ -67,3 +88,5 @@ app.include_router(answers.router)
 app.include_router(annotations.router)
 app.include_router(users.router)
 app.include_router(ui.router)
+
+app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")

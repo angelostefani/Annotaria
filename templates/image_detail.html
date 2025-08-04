@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ image.filename }}</h1>
+<div id="image-wrapper" style="position:relative; display:inline-block;">
+  <img id="image" src="/image_data/{{ image.filename }}" class="img-fluid" alt="{{ image.filename }}">
+  <canvas id="canvas" style="position:absolute; left:0; top:0;"></canvas>
+</div>
+
+<h2 class="mt-4">Questions</h2>
+<form id="answers-form">
+  {% for q in questions %}
+  <div class="mb-3">
+    <p>{{ q.question_text }}</p>
+    {% for opt in q.options %}
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="q{{ q.id }}" id="opt{{ opt.id }}" value="{{ opt.id }}">
+      <label class="form-check-label" for="opt{{ opt.id }}">{{ opt.option_text }}</label>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">Submit Answers</button>
+</form>
+
+<script>
+const token = "{{ token }}";
+const imageId = {{ image.id }};
+const img = document.getElementById('image');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = img.clientWidth;
+  canvas.height = img.clientHeight;
+}
+
+img.onload = resizeCanvas;
+window.onresize = resizeCanvas;
+
+let startX, startY, drawing = false;
+canvas.addEventListener('mousedown', e => {
+  startX = e.offsetX;
+  startY = e.offsetY;
+  drawing = true;
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!drawing) return;
+  const width = e.offsetX - startX;
+  const height = e.offsetY - startY;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'red';
+  ctx.strokeRect(startX, startY, width, height);
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!drawing) return;
+  drawing = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const width = e.offsetX - startX;
+  const height = e.offsetY - startY;
+  const label = prompt('Label for annotation?');
+  if (label) {
+    fetch('/annotations/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        image_id: imageId,
+        label: label,
+        x: startX,
+        y: startY,
+        width: width,
+        height: height
+      })
+    });
+  }
+});
+
+const answersForm = document.getElementById('answers-form');
+answersForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const data = new FormData(answersForm);
+  for (const [key, value] of data.entries()) {
+    const qId = parseInt(key.substring(1));
+    const optionId = parseInt(value);
+    fetch('/answers/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        image_id: imageId,
+        question_id: qId,
+        selected_option_id: optionId
+      })
+    });
+  }
+  alert('Answers submitted');
+});
+</script>
+{% endblock %}
