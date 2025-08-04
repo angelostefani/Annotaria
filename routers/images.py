@@ -3,13 +3,21 @@ from typing import List
 import os
 import shutil
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Response,
+)
 from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
 from database import get_db
 from models import Image as ImageModel
-from schemas import Image as ImageSchema, ImageDetail
+from schemas import Image as ImageSchema, ImageDetail, ImageUpdate
 
 router = APIRouter()
 
@@ -111,6 +119,14 @@ def read_images(db: Session = Depends(get_db)):
     return db.query(ImageModel).all()
 
 
+@router.get("/images/{image_id}", response_model=ImageDetail)
+def read_image(image_id: int, db: Session = Depends(get_db)):
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    return image
+
+
 @router.post("/images/upload", response_model=ImageDetail, status_code=status.HTTP_201_CREATED)
 async def upload_image(
     file: UploadFile = File(..., description="Immagine da caricare"),
@@ -123,3 +139,28 @@ async def upload_image(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     return register_image(file_path, db)
+
+
+@router.put("/images/{image_id}", response_model=ImageDetail)
+def update_image(image_id: int, image_data: ImageUpdate, db: Session = Depends(get_db)):
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    for key, value in image_data.dict(exclude_unset=True).items():
+        setattr(image, key, value)
+    db.commit()
+    db.refresh(image)
+    return image
+
+
+@router.delete("/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_image(image_id: int, db: Session = Depends(get_db)):
+    image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    file_path = Path(image.path)
+    if file_path.exists():
+        file_path.unlink()
+    db.delete(image)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

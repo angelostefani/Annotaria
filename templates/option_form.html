@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if option %}Edit Option{% else %}New Option{% endif %}</h1>
+<form method="post" action="{% if option %}/ui/options/{{option.id}}/edit{% else %}/ui/questions/{{question_id}}/options/create{% endif %}">
+<input type="text" name="option_text" value="{{ option.option_text if option else '' }}">
+<button type="submit">Save</button>
+</form>
+{% endblock %}
