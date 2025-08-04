@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Annotations</h1>
-<a href="/ui/annotations/create">New Annotation</a>
-<table border="1">
+<a href="/ui/annotations/create" class="btn btn-primary mb-3">New Annotation</a>
+<table class="table table-striped">
+<thead>
 <tr><th>ID</th><th>Image</th><th>Label</th><th>X</th><th>Y</th><th>Width</th><th>Height</th><th>User</th><th>Actions</th></tr>
+</thead>
+<tbody>
 {% for an in annotations %}
 <tr>
 <td>{{ an.id }}</td>
@@ -15,12 +18,13 @@
 <td>{{ an.height }}</td>
 <td>{{ an.user_id }}</td>
 <td>
-<a href="/ui/annotations/{{ an.id }}/edit">Edit</a>
-<form method="post" action="/ui/annotations/{{ an.id }}/delete" style="display:inline;">
-<button type="submit">Delete</button>
+<a href="/ui/annotations/{{ an.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+<form method="post" action="/ui/annotations/{{ an.id }}/delete" class="d-inline">
+<button type="submit" class="btn btn-sm btn-danger">Delete</button>
 </form>
 </td>
 </tr>
 {% endfor %}
+</tbody>
 </table>
 {% endblock %}

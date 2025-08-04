@@ -2,13 +2,34 @@
 {% block content %}
 <h1>{% if annotation %}Edit Annotation{% else %}New Annotation{% endif %}</h1>
 <form method="post" action="{% if annotation %}/ui/annotations/{{annotation.id}}/edit{% else %}/ui/annotations/create{% endif %}">
-<label>Image ID: <input type="number" name="image_id" value="{{ annotation.image_id if annotation else '' }}"></label><br>
-<label>Label: <input type="text" name="label" value="{{ annotation.label if annotation else '' }}"></label><br>
-<label>X: <input type="number" step="any" name="x" value="{{ annotation.x if annotation else '' }}"></label><br>
-<label>Y: <input type="number" step="any" name="y" value="{{ annotation.y if annotation else '' }}"></label><br>
-<label>Width: <input type="number" step="any" name="width" value="{{ annotation.width if annotation else '' }}"></label><br>
-<label>Height: <input type="number" step="any" name="height" value="{{ annotation.height if annotation else '' }}"></label><br>
-<label>User ID: <input type="number" name="user_id" value="{{ annotation.user_id if annotation else '' }}"></label><br>
-<button type="submit">Save</button>
+<div class="mb-3">
+    <label for="image_id" class="form-label">Image ID</label>
+    <input type="number" class="form-control" id="image_id" name="image_id" value="{{ annotation.image_id if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="label" class="form-label">Label</label>
+    <input type="text" class="form-control" id="label" name="label" value="{{ annotation.label if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="x" class="form-label">X</label>
+    <input type="number" step="any" class="form-control" id="x" name="x" value="{{ annotation.x if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="y" class="form-label">Y</label>
+    <input type="number" step="any" class="form-control" id="y" name="y" value="{{ annotation.y if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="width" class="form-label">Width</label>
+    <input type="number" step="any" class="form-control" id="width" name="width" value="{{ annotation.width if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="height" class="form-label">Height</label>
+    <input type="number" step="any" class="form-control" id="height" name="height" value="{{ annotation.height if annotation else '' }}">
+</div>
+<div class="mb-3">
+    <label for="user_id" class="form-label">User ID</label>
+    <input type="number" class="form-control" id="user_id" name="user_id" value="{{ annotation.user_id if annotation else '' }}">
+</div>
+<button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}
