@@ -2,17 +2,36 @@ import os
 from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from pydantic import BaseSettings
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 from models import User as UserModel
 
+
+class AppSettings(BaseSettings):
+    allowed_origins: str = "*"
+
+    class Config:
+        env_file = ".env"
+
+
+settings = AppSettings()
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in settings.allowed_origins.split(",")],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "secret")
 ALGORITHM = "HS256"
