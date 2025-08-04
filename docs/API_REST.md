@@ -5,6 +5,47 @@ Prefisso base: `http://localhost:8000/`
 
 ---
 
+## 👤 AUTENTICAZIONE
+
+### `POST /users/`
+Registra un nuovo utente.
+
+**Request Body**
+```json
+{
+  "username": "alice",
+  "password": "segreta"
+}
+```
+
+**Response 201 Created**
+```json
+{
+  "id": 1,
+  "username": "alice"
+}
+```
+
+### `POST /token`
+Esegue il login e restituisce un token JWT da usare nelle richieste protette.
+
+**Request Body** `application/x-www-form-urlencoded`
+```
+username=<username>&password=<password>
+```
+
+**Response 200 OK**
+```json
+{
+  "access_token": "<token>",
+  "token_type": "bearer"
+}
+```
+
+Per le rotte che richiedono autenticazione inviare l'header:
+
+`Authorization: Bearer <token>`
+
 ## 📁 IMMAGINI
 
 ### `GET /images`
@@ -117,8 +158,10 @@ Aggiunge una nuova opzione a una domanda esistente.
 
 ## 📝 RISPOSTE
 
+Richiede autenticazione; l'utente associato viene determinato dal token presente nell'header `Authorization: Bearer <token>`.
+
 ### `POST /answers/`
-Registra la risposta fornita da un utente per una determinata immagine e domanda.
+Registra la risposta fornita per una determinata immagine e domanda. L'associazione all'utente è automatica e non va specificato `user_id` nel body.
 
 **Request Body**
 ```json
@@ -144,8 +187,10 @@ Registra la risposta fornita da un utente per una determinata immagine e domanda
 
 ## 🎯 ANNOTAZIONI
 
+Richiede autenticazione; le annotazioni vengono collegate all'utente identificato dal token nell'header `Authorization`.
+
 ### `POST /annotations/`
-Salva un’annotazione su un'immagine selezionata (area rettangolare + label).
+Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `user_id` è gestito automaticamente.
 
 **Request Body**
 ```json
@@ -174,7 +219,7 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label).
 ```
 
 ### `GET /annotations/{image_id}`
-Restituisce tutte le annotazioni associate a una determinata immagine.
+Restituisce tutte le annotazioni dell'utente autenticato per una determinata immagine.
 
 **Response 200 OK**
 ```json
