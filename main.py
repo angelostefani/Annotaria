@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseSettings
@@ -79,6 +80,7 @@ def get_current_user(
     return user
 
 from routers import annotations, answers, images, questions, users, ui
+from routers.images import IMAGE_DIR
 
 app.include_router(images.router)
 app.include_router(questions.router)
@@ -86,3 +88,5 @@ app.include_router(answers.router)
 app.include_router(annotations.router)
 app.include_router(users.router)
 app.include_router(ui.router)
+
+app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")

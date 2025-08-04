@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
 
 from database import get_db
 from models import (
@@ -13,21 +14,103 @@ from models import (
     Option as OptionModel,
     Answer as AnswerModel,
     Annotation as AnnotationModel,
+    User as UserModel,
 )
 from routers.images import IMAGE_DIR, register_image
+from main import (
+    create_access_token,
+    get_password_hash,
+    verify_password,
+    SECRET_KEY,
+    ALGORITHM,
+)
 
 templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
 
 
+def get_current_user(request: Request, db: Session):
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+    return db.query(UserModel).filter_by(username=username).first()
+
+
 @router.get("/images", response_class=HTMLResponse)
 def list_images(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/ui/login", status_code=303)
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
     images = db.query(ImageModel).all()
-    return templates.TemplateResponse("images.html", {"request": request, "images": images})
+    token = request.cookies.get("access_token")
+    return templates.TemplateResponse(
+        "images.html", {"request": request, "images": images, "user": user, "token": token}
+    )
+
+
+@router.get("/register", response_class=HTMLResponse)
+def register_form(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+@router.post("/register")
+def register_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    existing = db.query(UserModel).filter_by(username=username).first()
+    if existing:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Username already exists"},
+        )
+    user = UserModel(username=username, hashed_password=get_password_hash(password))
+    db.add(user)
+    db.commit()
+    return RedirectResponse(url="/ui/login", status_code=303)
+
+
+@router.get("/login", response_class=HTMLResponse)
+def login_form(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@router.post("/login")
+def login_user(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = db.query(UserModel).filter_by(username=username).first()
+    if not user or not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "Invalid credentials"}
+        )
+    token = create_access_token({"sub": user.username})
+    response = RedirectResponse(url="/ui/images", status_code=303)
+    response.set_cookie("access_token", token, httponly=False)
+    return response
+
+
+@router.post("/logout")
+def logout_user():
+    response = RedirectResponse(url="/ui/login", status_code=303)
+    response.delete_cookie("access_token")
+    return response
 
 
 @router.get("/images/upload", response_class=HTMLResponse)
@@ -46,6 +129,30 @@ async def upload_image(
         shutil.copyfileobj(file.file, buffer)
     register_image(file_path, db)
     return RedirectResponse(url="/ui/images", status_code=303)
+
+
+@router.get("/images/{image_id}", response_class=HTMLResponse)
+def view_image(image_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/ui/login", status_code=303)
+    image = db.query(ImageModel).filter_by(id=image_id).first()
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found")
+    questions = db.query(QuestionModel).all()
+    for q in questions:
+        _ = q.options
+    token = request.cookies.get("access_token")
+    return templates.TemplateResponse(
+        "image_detail.html",
+        {
+            "request": request,
+            "image": image,
+            "questions": questions,
+            "user": user,
+            "token": token,
+        },
+    )
 
 
 @router.get("/images/{image_id}/edit", response_class=HTMLResponse)
