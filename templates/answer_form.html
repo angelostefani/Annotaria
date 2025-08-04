@@ -2,10 +2,22 @@
 {% block content %}
 <h1>{% if answer %}Edit Answer{% else %}New Answer{% endif %}</h1>
 <form method="post" action="{% if answer %}/ui/answers/{{answer.id}}/edit{% else %}/ui/answers/create{% endif %}">
-<label>Image ID: <input type="number" name="image_id" value="{{ answer.image_id if answer else '' }}"></label><br>
-<label>Question ID: <input type="number" name="question_id" value="{{ answer.question_id if answer else '' }}"></label><br>
-<label>Option ID: <input type="number" name="selected_option_id" value="{{ answer.selected_option_id if answer else '' }}"></label><br>
-<label>User ID: <input type="number" name="user_id" value="{{ answer.user_id if answer else '' }}"></label><br>
-<button type="submit">Save</button>
+<div class="mb-3">
+    <label for="image_id" class="form-label">Image ID</label>
+    <input type="number" class="form-control" id="image_id" name="image_id" value="{{ answer.image_id if answer else '' }}">
+</div>
+<div class="mb-3">
+    <label for="question_id" class="form-label">Question ID</label>
+    <input type="number" class="form-control" id="question_id" name="question_id" value="{{ answer.question_id if answer else '' }}">
+</div>
+<div class="mb-3">
+    <label for="selected_option_id" class="form-label">Option ID</label>
+    <input type="number" class="form-control" id="selected_option_id" name="selected_option_id" value="{{ answer.selected_option_id if answer else '' }}">
+</div>
+<div class="mb-3">
+    <label for="user_id" class="form-label">User ID</label>
+    <input type="number" class="form-control" id="user_id" name="user_id" value="{{ answer.user_id if answer else '' }}">
+</div>
+<button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}

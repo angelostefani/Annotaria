@@ -2,7 +2,10 @@
 {% block content %}
 <h1>{% if option %}Edit Option{% else %}New Option{% endif %}</h1>
 <form method="post" action="{% if option %}/ui/options/{{option.id}}/edit{% else %}/ui/questions/{{question_id}}/options/create{% endif %}">
-<input type="text" name="option_text" value="{{ option.option_text if option else '' }}">
-<button type="submit">Save</button>
+<div class="mb-3">
+    <label for="option_text" class="form-label">Option Text</label>
+    <input type="text" id="option_text" name="option_text" class="form-control" value="{{ option.option_text if option else '' }}">
+</div>
+<button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}

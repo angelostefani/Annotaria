@@ -1,26 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Questions</h1>
-<a href="/ui/questions/create">New Question</a>
-<ul>
+<a href="/ui/questions/create" class="btn btn-primary mb-3">New Question</a>
+<ul class="list-group">
 {% for q in questions %}
-<li>
-{{ q.question_text }}
-<a href="/ui/questions/{{ q.id }}/edit">Edit</a>
-<form method="post" action="/ui/questions/{{ q.id }}/delete" style="display:inline;">
-    <button type="submit">Delete</button>
-</form>
-<ul>
-{% for opt in q.options %}
-<li>{{ opt.option_text }}
-    <a href="/ui/options/{{ opt.id }}/edit">Edit</a>
-    <form method="post" action="/ui/options/{{ opt.id }}/delete" style="display:inline;">
-        <button type="submit">Delete</button>
-    </form>
-</li>
-{% endfor %}
-</ul>
-<a href="/ui/questions/{{ q.id }}/options/create">Add Option</a>
+<li class="list-group-item">
+<div class="d-flex justify-content-between">
+    <div>
+        {{ q.question_text }}
+        <ul class="list-group mt-2">
+        {% for opt in q.options %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ opt.option_text }}
+            <span>
+                <a href="/ui/options/{{ opt.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+                <form method="post" action="/ui/options/{{ opt.id }}/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </span>
+        </li>
+        {% endfor %}
+        </ul>
+        <a href="/ui/questions/{{ q.id }}/options/create" class="btn btn-sm btn-primary mt-2">Add Option</a>
+    </div>
+    <span>
+        <a href="/ui/questions/{{ q.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+        <form method="post" action="/ui/questions/{{ q.id }}/delete" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+    </span>
+</div>
 </li>
 {% endfor %}
 </ul>
