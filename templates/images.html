@@ -1,20 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Images</h1>
-<a href="/ui/images/upload">Upload Image</a>
-<table border="1">
-<tr><th>ID</th><th>Filename</th><th>Actions</th></tr>
+<a href="/ui/images/upload" class="btn btn-primary mb-3">Upload Image</a>
+<table class="table table-striped">
+<thead>
+    <tr><th>ID</th><th>Filename</th><th>Actions</th></tr>
+</thead>
+<tbody>
 {% for img in images %}
 <tr>
 <td>{{ img.id }}</td>
 <td>{{ img.filename }}</td>
 <td>
-    <a href="/ui/images/{{ img.id }}/edit">Edit</a>
-    <form method="post" action="/ui/images/{{ img.id }}/delete" style="display:inline;">
-        <button type="submit">Delete</button>
+    <a href="/ui/images/{{ img.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+    <form method="post" action="/ui/images/{{ img.id }}/delete" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
     </form>
 </td>
 </tr>
 {% endfor %}
+</tbody>
 </table>
 {% endblock %}
