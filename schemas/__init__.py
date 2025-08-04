@@ -1,5 +1,3 @@
-from datetime import datetime
-from typing import List
 from pydantic import BaseModel
 
 
@@ -65,49 +63,5 @@ class Option(OptionBase):
         orm_mode = True
 
 
-class AnswerBase(BaseModel):
-    image_id: int
-    question_id: int
-    selected_option_id: int
-
-
-class AnswerCreate(AnswerBase):
-    pass
-
-
-class Answer(AnswerBase):
-    id: int
-    answered_at: datetime | None = None
-
-    class Config:
-        orm_mode = True
-
-
-class AnnotationBase(BaseModel):
-    image_id: int
-    label: str
-    x: float
-    y: float
-    width: float
-    height: float
-
-
-class AnnotationCreate(AnnotationBase):
-    pass
-
-
-class AnnotationUpdate(BaseModel):
-    image_id: int | None = None
-    label: str | None = None
-    x: float | None = None
-    y: float | None = None
-    width: float | None = None
-    height: float | None = None
-
-
-class Annotation(AnnotationBase):
-    id: int
-    annotated_at: datetime | None = None
-
-    class Config:
-        orm_mode = True
+from .answer import Answer, AnswerCreate
+from .annotation import Annotation, AnnotationCreate, AnnotationUpdate

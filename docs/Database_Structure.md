@@ -2,7 +2,17 @@
 
 ---
 
-## 1. `images`
+## 1. `users`
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    hashed_password TEXT NOT NULL
+);
+```
+
+## 2. `images`
 
 ```sql
 CREATE TABLE images (
@@ -33,7 +43,7 @@ CREATE TABLE images (
 );
 ```
 
-## 2. `questions`
+## 3. `questions`
 
 ```sql
 CREATE TABLE questions (
@@ -42,7 +52,7 @@ CREATE TABLE questions (
 );
 ```
 
-## 3. `options`
+## 4. `options`
 
 ```sql
 CREATE TABLE options (
@@ -52,7 +62,7 @@ CREATE TABLE options (
 );
 ```
 
-## 4. `answers`
+## 5. `answers`
 
 ```sql
 CREATE TABLE answers (
@@ -60,11 +70,12 @@ CREATE TABLE answers (
     image_id INTEGER NOT NULL REFERENCES images(id),
     question_id INTEGER NOT NULL REFERENCES questions(id),
     selected_option_id INTEGER NOT NULL REFERENCES options(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
     answered_at TIMESTAMP DEFAULT NOW()
 );
 ```
 
-## 5. `annotations`
+## 6. `annotations`
 
 ```sql
 CREATE TABLE annotations (
@@ -75,6 +86,7 @@ CREATE TABLE annotations (
     y FLOAT NOT NULL,
     width FLOAT NOT NULL,
     height FLOAT NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id),
     annotated_at TIMESTAMP DEFAULT NOW()
 );
 ```
