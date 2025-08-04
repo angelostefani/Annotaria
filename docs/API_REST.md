@@ -83,6 +83,43 @@ file=<binary>
 }
 ```
 
+### `GET /images/{image_id}`
+Restituisce i dettagli di una singola immagine.
+
+**Response 200 OK**
+```json
+{
+  "id": 1,
+  "filename": "immagine1.jpg",
+  "path": "./image_data/immagine1.jpg",
+  "exif_camera_model": "DJI Mavic Air 2"
+}
+```
+
+### `PUT /images/{image_id}`
+Aggiorna i metadati di un’immagine esistente.
+
+**Request Body**
+```json
+{
+  "filename": "nuovo_nome.jpg"
+}
+```
+
+**Response 200 OK**
+```json
+{
+  "id": 1,
+  "filename": "nuovo_nome.jpg",
+  "path": "./image_data/nuovo_nome.jpg"
+}
+```
+
+### `DELETE /images/{image_id}`
+Rimuove un’immagine dal database e dal filesystem.
+
+**Response 204 No Content**
+
 ---
 
 ## ❓ DOMANDE E OPZIONI
