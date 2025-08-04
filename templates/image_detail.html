@@ -13,7 +13,7 @@
     <p>{{ q.question_text }}</p>
     {% for opt in q.options %}
     <div class="form-check">
-      <input class="form-check-input" type="radio" name="q{{ q.id }}" id="opt{{ opt.id }}" value="{{ opt.id }}">
+      <input class="form-check-input" type="radio" name="q{{ q.id }}" id="opt{{ opt.id }}" value="{{ opt.id }}" {% if answer_map.get(q.id) == opt.id %}checked{% endif %}>
       <label class="form-check-label" for="opt{{ opt.id }}">{{ opt.option_text }}</label>
     </div>
     {% endfor %}
@@ -28,16 +28,29 @@ const imageId = {{ image.id }};
 const img = document.getElementById('image');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const existingAnnotations = {{ annotations | tojson }};
 
 function resizeCanvas() {
   canvas.width = img.clientWidth;
   canvas.height = img.clientHeight;
+  drawAnnotations();
 }
 
 img.onload = resizeCanvas;
 window.onresize = resizeCanvas;
 
 let startX, startY, drawing = false;
+
+function drawAnnotations() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  existingAnnotations.forEach(a => {
+    ctx.strokeStyle = 'red';
+    ctx.strokeRect(a.x, a.y, a.width, a.height);
+    ctx.fillStyle = 'red';
+    ctx.fillText(a.label, a.x, a.y - 4);
+  });
+}
+
 canvas.addEventListener('mousedown', e => {
   startX = e.offsetX;
   startY = e.offsetY;
@@ -48,7 +61,7 @@ canvas.addEventListener('mousemove', e => {
   if (!drawing) return;
   const width = e.offsetX - startX;
   const height = e.offsetY - startY;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawAnnotations();
   ctx.strokeStyle = 'red';
   ctx.strokeRect(startX, startY, width, height);
 });
@@ -56,7 +69,7 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mouseup', e => {
   if (!drawing) return;
   drawing = false;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawAnnotations();
   const width = e.offsetX - startX;
   const height = e.offsetY - startY;
   const label = prompt('Label for annotation?');
@@ -75,6 +88,9 @@ canvas.addEventListener('mouseup', e => {
         width: width,
         height: height
       })
+    }).then(() => {
+      existingAnnotations.push({label: label, x: startX, y: startY, width: width, height: height});
+      drawAnnotations();
     });
   }
 });

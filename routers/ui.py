@@ -30,6 +30,19 @@ templates = Jinja2Templates(directory="templates")
 router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
 
 
+@router.get("/", response_class=HTMLResponse)
+def ui_root(request: Request, db: Session = Depends(get_db)):
+    """Serve the UI entry point.
+
+    If the user is authenticated, redirect them to the image list; otherwise
+    show the login page. This prevents a 404 when accessing ``/ui``.
+    """
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/ui/login", status_code=303)
+    return RedirectResponse(url="/ui/images", status_code=303)
+
+
 def get_current_user(request: Request, db: Session):
     token = request.cookies.get("access_token")
     if not token:
@@ -142,6 +155,29 @@ def view_image(image_id: int, request: Request, db: Session = Depends(get_db)):
     questions = db.query(QuestionModel).all()
     for q in questions:
         _ = q.options
+
+    answers = (
+        db.query(AnswerModel)
+        .filter_by(image_id=image_id, user_id=user.id)
+        .all()
+    )
+    answer_map = {a.question_id: a.selected_option_id for a in answers}
+
+    annotations = [
+        {
+            "label": a.label,
+            "x": a.x,
+            "y": a.y,
+            "width": a.width,
+            "height": a.height,
+        }
+        for a in (
+            db.query(AnnotationModel)
+            .filter_by(image_id=image_id, user_id=user.id)
+            .all()
+        )
+    ]
+
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
         "image_detail.html",
@@ -151,6 +187,8 @@ def view_image(image_id: int, request: Request, db: Session = Depends(get_db)):
             "questions": questions,
             "user": user,
             "token": token,
+            "answer_map": answer_map,
+            "annotations": annotations,
         },
     )
 
