@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Questions</h1>
+<a href="/ui/questions/create">New Question</a>
+<ul>
+{% for q in questions %}
+<li>
+{{ q.question_text }}
+<a href="/ui/questions/{{ q.id }}/edit">Edit</a>
+<form method="post" action="/ui/questions/{{ q.id }}/delete" style="display:inline;">
+    <button type="submit">Delete</button>
+</form>
+<ul>
+{% for opt in q.options %}
+<li>{{ opt.option_text }}
+    <a href="/ui/options/{{ opt.id }}/edit">Edit</a>
+    <form method="post" action="/ui/options/{{ opt.id }}/delete" style="display:inline;">
+        <button type="submit">Delete</button>
+    </form>
+</li>
+{% endfor %}
+</ul>
+<a href="/ui/questions/{{ q.id }}/options/create">Add Option</a>
+</li>
+{% endfor %}
+</ul>
+{% endblock %}

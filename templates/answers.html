@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Answers</h1>
+<a href="/ui/answers/create">New Answer</a>
+<table border="1">
+<tr><th>ID</th><th>Image</th><th>Question</th><th>Option</th><th>User</th><th>Actions</th></tr>
+{% for a in answers %}
+<tr>
+<td>{{ a.id }}</td>
+<td>{{ a.image_id }}</td>
+<td>{{ a.question_id }}</td>
+<td>{{ a.selected_option_id }}</td>
+<td>{{ a.user_id }}</td>
+<td>
+<a href="/ui/answers/{{ a.id }}/edit">Edit</a>
+<form method="post" action="/ui/answers/{{ a.id }}/delete" style="display:inline;">
+<button type="submit">Delete</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

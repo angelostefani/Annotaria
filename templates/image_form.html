@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if image %}Edit Image{% else %}Upload Image{% endif %}</h1>
+<form method="post" enctype="multipart/form-data" {% if image %}action="/ui/images/{{ image.id }}/edit"{% else %}action="/ui/images/upload"{% endif %}>
+{% if image %}
+<label>Filename: <input type="text" name="filename" value="{{ image.filename }}"></label><br>
+{% else %}
+<label>File: <input type="file" name="file"></label><br>
+{% endif %}
+<button type="submit">Submit</button>
+</form>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{% if question %}Edit Question{% else %}New Question{% endif %}</h1>
+<form method="post" action="{% if question %}/ui/questions/{{question.id}}/edit{% else %}/ui/questions/create{% endif %}">
+<input type="text" name="question_text" value="{{ question.question_text if question else '' }}">
+<button type="submit">Save</button>
+</form>
+{% endblock %}
