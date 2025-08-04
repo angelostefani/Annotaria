@@ -17,8 +17,20 @@ def create_answer(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
-    db_answer = AnswerModel(**answer.dict(), user_id=current_user.id)
-    db.add(db_answer)
+    db_answer = (
+        db.query(AnswerModel)
+        .filter_by(
+            image_id=answer.image_id,
+            question_id=answer.question_id,
+            user_id=current_user.id,
+        )
+        .first()
+    )
+    if db_answer:
+        db_answer.selected_option_id = answer.selected_option_id
+    else:
+        db_answer = AnswerModel(**answer.dict(), user_id=current_user.id)
+        db.add(db_answer)
     db.commit()
     db.refresh(db_answer)
     return db_answer
