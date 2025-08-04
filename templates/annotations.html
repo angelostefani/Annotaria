@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Annotations</h1>
+<a href="/ui/annotations/create">New Annotation</a>
+<table border="1">
+<tr><th>ID</th><th>Image</th><th>Label</th><th>X</th><th>Y</th><th>Width</th><th>Height</th><th>User</th><th>Actions</th></tr>
+{% for an in annotations %}
+<tr>
+<td>{{ an.id }}</td>
+<td>{{ an.image_id }}</td>
+<td>{{ an.label }}</td>
+<td>{{ an.x }}</td>
+<td>{{ an.y }}</td>
+<td>{{ an.width }}</td>
+<td>{{ an.height }}</td>
+<td>{{ an.user_id }}</td>
+<td>
+<a href="/ui/annotations/{{ an.id }}/edit">Edit</a>
+<form method="post" action="/ui/annotations/{{ an.id }}/delete" style="display:inline;">
+<button type="submit">Delete</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}
