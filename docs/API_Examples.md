@@ -12,6 +12,13 @@ Questa guida fornisce esempi pratici di richieste alle API REST del progetto Ann
 curl http://localhost:8000/images
 ```
 
+### `POST /images/upload`
+
+```bash
+curl -X POST http://localhost:8000/images/upload \
+  -F "file=@/percorso/della/immagine.jpg"
+```
+
 ---
 
 ## ➕ Creazione di una domanda
@@ -89,4 +96,6 @@ curl http://localhost:8000/questions/1/options
 
 ---
 
-> 🔧 Tutte le richieste usano `Content-Type: application/json`. Assicurati che l'API sia in esecuzione su `localhost:8000`.
+
+> 🔧 Tutte le richieste usano `Content-Type: application/json`.
+> Assicurati che l'API sia in esecuzione su `localhost:8000`.
