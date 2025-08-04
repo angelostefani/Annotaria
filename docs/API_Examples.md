@@ -19,6 +19,26 @@ curl -X POST http://localhost:8000/images/upload \
   -F "file=@/percorso/della/immagine.jpg"
 ```
 
+### `GET /images/1`
+
+```bash
+curl http://localhost:8000/images/1
+```
+
+### `PUT /images/1`
+
+```bash
+curl -X PUT http://localhost:8000/images/1 \
+  -H "Content-Type: application/json" \
+  -d '{"filename": "nuovo.jpg"}'
+```
+
+### `DELETE /images/1`
+
+```bash
+curl -X DELETE http://localhost:8000/images/1
+```
+
 ---
 
 ## ➕ Creazione di una domanda
