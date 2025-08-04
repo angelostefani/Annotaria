@@ -8,8 +8,26 @@ from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
 from database import Base, engine, get_db
-import models
-import schemas
+from models import (
+    Image as ImageModel,
+    Question as QuestionModel,
+    Option as OptionModel,
+    Answer as AnswerModel,
+    Annotation as AnnotationModel,
+)
+from schemas import (
+    Image as ImageSchema,
+    ImageDetail,
+    Question as QuestionSchema,
+    QuestionCreate,
+    Option as OptionSchema,
+    OptionCreate,
+    Answer as AnswerSchema,
+    AnswerCreate,
+    Annotation as AnnotationSchema,
+    AnnotationCreate,
+    AnnotationUpdate,
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -89,7 +107,7 @@ def extract_exif(path: Path):
 
 def register_image(path: Path, db: Session):
     filename = path.name
-    existing = db.query(models.Image).filter_by(filename=filename).first()
+    existing = db.query(ImageModel).filter_by(filename=filename).first()
     exif_data = extract_exif(path)
     if existing:
         for key, value in exif_data.items():
@@ -98,24 +116,24 @@ def register_image(path: Path, db: Session):
         db.commit()
         db.refresh(existing)
         return existing
-    db_image = models.Image(filename=filename, path=str(path), **exif_data)
+    db_image = ImageModel(filename=filename, path=str(path), **exif_data)
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
     return db_image
 
 
-@app.get("/images", response_model=List[schemas.Image])
+@app.get("/images", response_model=List[ImageSchema])
 def read_images(db: Session = Depends(get_db)):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    return db.query(models.Image).all()
+    return db.query(ImageModel).all()
 
 
 @app.post(
     "/images/upload",
-    response_model=schemas.ImageDetail,
+    response_model=ImageDetail,
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_image(
@@ -131,18 +149,18 @@ async def upload_image(
     return register_image(file_path, db)
 
 
-@app.post("/questions/", response_model=schemas.Question)
-def create_question(question: schemas.QuestionCreate, db: Session = Depends(get_db)):
-    db_question = models.Question(question_text=question.question_text)
+@app.post("/questions/", response_model=QuestionSchema)
+def create_question(question: QuestionCreate, db: Session = Depends(get_db)):
+    db_question = QuestionModel(question_text=question.question_text)
     db.add(db_question)
     db.commit()
     db.refresh(db_question)
     return db_question
 
 
-@app.put("/questions/{question_id}", response_model=schemas.Question)
-def update_question(question_id: int, question: schemas.QuestionCreate, db: Session = Depends(get_db)):
-    db_question = db.query(models.Question).filter_by(id=question_id).first()
+@app.put("/questions/{question_id}", response_model=QuestionSchema)
+def update_question(question_id: int, question: QuestionCreate, db: Session = Depends(get_db)):
+    db_question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not db_question:
         raise HTTPException(status_code=404, detail="Question not found")
     db_question.question_text = question.question_text
@@ -153,7 +171,7 @@ def update_question(question_id: int, question: schemas.QuestionCreate, db: Sess
 
 @app.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_question(question_id: int, db: Session = Depends(get_db)):
-    db_question = db.query(models.Question).filter_by(id=question_id).first()
+    db_question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not db_question:
         raise HTTPException(status_code=404, detail="Question not found")
     db.delete(db_question)
@@ -161,25 +179,25 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@app.get("/questions/", response_model=List[schemas.Question])
+@app.get("/questions/", response_model=List[QuestionSchema])
 def list_questions(db: Session = Depends(get_db)):
-    return db.query(models.Question).all()
+    return db.query(QuestionModel).all()
 
 
-@app.post("/questions/{question_id}/options/", response_model=schemas.Option)
-def create_option(question_id: int, option: schemas.OptionCreate, db: Session = Depends(get_db)):
-    if not db.query(models.Question).filter_by(id=question_id).first():
+@app.post("/questions/{question_id}/options", response_model=OptionSchema)
+def create_option(question_id: int, option: OptionCreate, db: Session = Depends(get_db)):
+    if not db.query(QuestionModel).filter_by(id=question_id).first():
         raise HTTPException(status_code=404, detail="Question not found")
-    db_option = models.Option(question_id=question_id, option_text=option.option_text)
+    db_option = OptionModel(question_id=question_id, option_text=option.option_text)
     db.add(db_option)
     db.commit()
     db.refresh(db_option)
     return db_option
 
 
-@app.put("/options/{option_id}", response_model=schemas.Option)
-def update_option(option_id: int, option: schemas.OptionCreate, db: Session = Depends(get_db)):
-    db_option = db.query(models.Option).filter_by(id=option_id).first()
+@app.put("/options/{option_id}", response_model=OptionSchema)
+def update_option(option_id: int, option: OptionCreate, db: Session = Depends(get_db)):
+    db_option = db.query(OptionModel).filter_by(id=option_id).first()
     if not db_option:
         raise HTTPException(status_code=404, detail="Option not found")
     db_option.option_text = option.option_text
@@ -190,7 +208,7 @@ def update_option(option_id: int, option: schemas.OptionCreate, db: Session = De
 
 @app.delete("/options/{option_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_option(option_id: int, db: Session = Depends(get_db)):
-    db_option = db.query(models.Option).filter_by(id=option_id).first()
+    db_option = db.query(OptionModel).filter_by(id=option_id).first()
     if not db_option:
         raise HTTPException(status_code=404, detail="Option not found")
     db.delete(db_option)
@@ -198,42 +216,42 @@ def delete_option(option_id: int, db: Session = Depends(get_db)):
     return None
 
 
-@app.get("/questions/{question_id}/options/", response_model=List[schemas.Option])
+@app.get("/questions/{question_id}/options", response_model=List[OptionSchema])
 def list_options(question_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Option).filter_by(question_id=question_id).all()
+    return db.query(OptionModel).filter_by(question_id=question_id).all()
 
 
-@app.post("/answers/", response_model=schemas.Answer)
-def create_answer(answer: schemas.AnswerCreate, db: Session = Depends(get_db)):
-    db_answer = models.Answer(**answer.dict())
+@app.post("/answers/", response_model=AnswerSchema)
+def create_answer(answer: AnswerCreate, db: Session = Depends(get_db)):
+    db_answer = AnswerModel(**answer.dict())
     db.add(db_answer)
     db.commit()
     db.refresh(db_answer)
     return db_answer
 
 
-@app.get("/answers/{image_id}", response_model=List[schemas.Answer])
+@app.get("/answers/{image_id}", response_model=List[AnswerSchema])
 def list_answers(image_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Answer).filter_by(image_id=image_id).all()
+    return db.query(AnswerModel).filter_by(image_id=image_id).all()
 
 
-@app.post("/annotations/", response_model=schemas.Annotation)
-def create_annotation(annotation: schemas.AnnotationCreate, db: Session = Depends(get_db)):
-    db_annotation = models.Annotation(**annotation.dict())
+@app.post("/annotations/", response_model=AnnotationSchema)
+def create_annotation(annotation: AnnotationCreate, db: Session = Depends(get_db)):
+    db_annotation = AnnotationModel(**annotation.dict())
     db.add(db_annotation)
     db.commit()
     db.refresh(db_annotation)
     return db_annotation
 
 
-@app.get("/annotations/{image_id}", response_model=List[schemas.Annotation])
+@app.get("/annotations/{image_id}", response_model=List[AnnotationSchema])
 def list_annotations(image_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Annotation).filter_by(image_id=image_id).all()
+    return db.query(AnnotationModel).filter_by(image_id=image_id).all()
 
 
-@app.put("/annotations/{annotation_id}", response_model=schemas.Annotation)
-def update_annotation(annotation_id: int, annotation: schemas.AnnotationUpdate, db: Session = Depends(get_db)):
-    db_annotation = db.query(models.Annotation).filter_by(id=annotation_id).first()
+@app.put("/annotations/{annotation_id}", response_model=AnnotationSchema)
+def update_annotation(annotation_id: int, annotation: AnnotationUpdate, db: Session = Depends(get_db)):
+    db_annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if not db_annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
     for field, value in annotation.dict(exclude_unset=True).items():
@@ -245,7 +263,7 @@ def update_annotation(annotation_id: int, annotation: schemas.AnnotationUpdate, 
 
 @app.delete("/annotations/{annotation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_annotation(annotation_id: int, db: Session = Depends(get_db)):
-    db_annotation = db.query(models.Annotation).filter_by(id=annotation_id).first()
+    db_annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if not db_annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
     db.delete(db_annotation)
