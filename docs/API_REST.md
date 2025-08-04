@@ -77,7 +77,7 @@ Crea una nuova domanda.
 }
 ```
 
-### `GET /questions/{question_id}/options/`
+### `GET /questions/{question_id}/options`
 Restituisce tutte le opzioni associate a una domanda.
 
 **Response 200 OK**
@@ -94,7 +94,7 @@ Restituisce tutte le opzioni associate a una domanda.
 ]
 ```
 
-### `POST /questions/{question_id}/options/`
+### `POST /questions/{question_id}/options`
 Aggiunge una nuova opzione a una domanda esistente.
 
 **Request Body**

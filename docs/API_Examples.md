@@ -28,10 +28,10 @@ curl -X POST http://localhost:8000/questions/ \
 
 ## ➕ Aggiunta di opzioni a una domanda
 
-### `POST /questions/1/options/`
+### `POST /questions/1/options`
 
 ```bash
-curl -X POST http://localhost:8000/questions/1/options/ \
+curl -X POST http://localhost:8000/questions/1/options \
   -H "Content-Type: application/json" \
   -d '{"option_text": "Secco"}'
 ```
@@ -81,10 +81,10 @@ curl -X POST http://localhost:8000/annotations/ \
 curl http://localhost:8000/questions/
 ```
 
-### `GET /questions/1/options/`
+### `GET /questions/1/options`
 
 ```bash
-curl http://localhost:8000/questions/1/options/
+curl http://localhost:8000/questions/1/options
 ```
 
 ---
