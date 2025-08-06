@@ -57,11 +57,27 @@ def get_current_user(request: Request, db: Session):
     return db.query(UserModel).filter_by(username=username).first()
 
 
-@router.get("/images", response_class=HTMLResponse)
-def list_images(request: Request, db: Session = Depends(get_db)):
+def require_user(
+    request: Request, db: Session = Depends(get_db)
+):
     user = get_current_user(request, db)
     if not user:
-        return RedirectResponse(url="/ui/login", status_code=303)
+        raise HTTPException(status_code=303, headers={"Location": "/ui/login"})
+    return user
+
+
+def require_admin(user: UserModel = Depends(require_user)):
+    if user.role != "Amministratore":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return user
+
+
+@router.get("/images", response_class=HTMLResponse)
+def list_images(
+    request: Request,
+    user: UserModel = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
@@ -90,7 +106,11 @@ def register_user(
             "register.html",
             {"request": request, "error": "Username already exists"},
         )
-    user = UserModel(username=username, hashed_password=get_password_hash(password))
+    user = UserModel(
+        username=username,
+        hashed_password=get_password_hash(password),
+        role="Esperto",
+    )
     db.add(user)
     db.commit()
     return RedirectResponse(url="/ui/login", status_code=303)
@@ -126,12 +146,19 @@ def logout_user():
     return response
 
 
-@router.get("/images/upload", response_class=HTMLResponse)
+@router.get(
+    "/images/upload",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def upload_image_form(request: Request):
     return templates.TemplateResponse("image_form.html", {"request": request})
 
 
-@router.post("/images/upload")
+@router.post(
+    "/images/upload",
+    dependencies=[Depends(require_admin)],
+)
 async def upload_image(
     request: Request,
     file: UploadFile = File(...),
@@ -145,10 +172,12 @@ async def upload_image(
 
 
 @router.get("/images/{image_id}", response_class=HTMLResponse)
-def view_image(image_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request, db)
-    if not user:
-        return RedirectResponse(url="/ui/login", status_code=303)
+def view_image(
+    image_id: int,
+    request: Request,
+    user: UserModel = Depends(require_user),
+    db: Session = Depends(get_db),
+):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -193,7 +222,11 @@ def view_image(image_id: int, request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/images/{image_id}/edit", response_class=HTMLResponse)
+@router.get(
+    "/images/{image_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def edit_image_form(image_id: int, request: Request, db: Session = Depends(get_db)):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
@@ -203,8 +236,15 @@ def edit_image_form(image_id: int, request: Request, db: Session = Depends(get_d
     )
 
 
-@router.post("/images/{image_id}/edit")
-def edit_image(image_id: int, filename: str = Form(...), db: Session = Depends(get_db)):
+@router.post(
+    "/images/{image_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
+def edit_image(
+    image_id: int,
+    filename: str = Form(...),
+    db: Session = Depends(get_db),
+):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
@@ -213,7 +253,10 @@ def edit_image(image_id: int, filename: str = Form(...), db: Session = Depends(g
     return RedirectResponse(url="/ui/images", status_code=303)
 
 
-@router.post("/images/{image_id}/delete")
+@router.post(
+    "/images/{image_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
 def delete_image(image_id: int, db: Session = Depends(get_db)):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if image:
@@ -225,7 +268,11 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/ui/images", status_code=303)
 
 
-@router.get("/questions", response_class=HTMLResponse)
+@router.get(
+    "/questions",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def list_questions(request: Request, db: Session = Depends(get_db)):
     questions = db.query(QuestionModel).all()
     return templates.TemplateResponse(
@@ -233,21 +280,37 @@ def list_questions(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/questions/create", response_class=HTMLResponse)
+@router.get(
+    "/questions/create",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def create_question_form(request: Request):
     return templates.TemplateResponse("question_form.html", {"request": request})
 
 
-@router.post("/questions/create")
-def create_question(question_text: str = Form(...), db: Session = Depends(get_db)):
+@router.post(
+    "/questions/create",
+    dependencies=[Depends(require_admin)],
+)
+def create_question(
+    question_text: str = Form(...),
+    db: Session = Depends(get_db),
+):
     question = QuestionModel(question_text=question_text)
     db.add(question)
     db.commit()
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.get("/questions/{question_id}/edit", response_class=HTMLResponse)
-def edit_question_form(question_id: int, request: Request, db: Session = Depends(get_db)):
+@router.get(
+    "/questions/{question_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
+def edit_question_form(
+    question_id: int, request: Request, db: Session = Depends(get_db)
+):
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -256,9 +319,14 @@ def edit_question_form(question_id: int, request: Request, db: Session = Depends
     )
 
 
-@router.post("/questions/{question_id}/edit")
+@router.post(
+    "/questions/{question_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
 def edit_question(
-    question_id: int, question_text: str = Form(...), db: Session = Depends(get_db)
+    question_id: int,
+    question_text: str = Form(...),
+    db: Session = Depends(get_db),
 ):
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not question:
@@ -268,7 +336,10 @@ def edit_question(
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.post("/questions/{question_id}/delete")
+@router.post(
+    "/questions/{question_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
 def delete_question(question_id: int, db: Session = Depends(get_db)):
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if question:
@@ -277,16 +348,25 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.get("/questions/{question_id}/options/create", response_class=HTMLResponse)
+@router.get(
+    "/questions/{question_id}/options/create",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def create_option_form(question_id: int, request: Request):
     return templates.TemplateResponse(
         "option_form.html", {"request": request, "question_id": question_id}
     )
 
 
-@router.post("/questions/{question_id}/options/create")
+@router.post(
+    "/questions/{question_id}/options/create",
+    dependencies=[Depends(require_admin)],
+)
 def create_option(
-    question_id: int, option_text: str = Form(...), db: Session = Depends(get_db)
+    question_id: int,
+    option_text: str = Form(...),
+    db: Session = Depends(get_db),
 ):
     option = OptionModel(question_id=question_id, option_text=option_text)
     db.add(option)
@@ -294,7 +374,11 @@ def create_option(
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.get("/options/{option_id}/edit", response_class=HTMLResponse)
+@router.get(
+    "/options/{option_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def edit_option_form(option_id: int, request: Request, db: Session = Depends(get_db)):
     option = db.query(OptionModel).filter_by(id=option_id).first()
     if not option:
@@ -304,8 +388,15 @@ def edit_option_form(option_id: int, request: Request, db: Session = Depends(get
     )
 
 
-@router.post("/options/{option_id}/edit")
-def edit_option(option_id: int, option_text: str = Form(...), db: Session = Depends(get_db)):
+@router.post(
+    "/options/{option_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
+def edit_option(
+    option_id: int,
+    option_text: str = Form(...),
+    db: Session = Depends(get_db),
+):
     option = db.query(OptionModel).filter_by(id=option_id).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
@@ -314,7 +405,10 @@ def edit_option(option_id: int, option_text: str = Form(...), db: Session = Depe
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.post("/options/{option_id}/delete")
+@router.post(
+    "/options/{option_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
 def delete_option(option_id: int, db: Session = Depends(get_db)):
     option = db.query(OptionModel).filter_by(id=option_id).first()
     if option:
@@ -323,7 +417,11 @@ def delete_option(option_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/ui/questions", status_code=303)
 
 
-@router.get("/answers", response_class=HTMLResponse)
+@router.get(
+    "/answers",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def list_answers(request: Request, db: Session = Depends(get_db)):
     answers = db.query(AnswerModel).all()
     return templates.TemplateResponse(
@@ -331,12 +429,19 @@ def list_answers(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/answers/create", response_class=HTMLResponse)
+@router.get(
+    "/answers/create",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def create_answer_form(request: Request):
     return templates.TemplateResponse("answer_form.html", {"request": request})
 
 
-@router.post("/answers/create")
+@router.post(
+    "/answers/create",
+    dependencies=[Depends(require_admin)],
+)
 def create_answer(
     image_id: int = Form(...),
     question_id: int = Form(...),
@@ -355,7 +460,11 @@ def create_answer(
     return RedirectResponse(url="/ui/answers", status_code=303)
 
 
-@router.get("/answers/{answer_id}/edit", response_class=HTMLResponse)
+@router.get(
+    "/answers/{answer_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def edit_answer_form(answer_id: int, request: Request, db: Session = Depends(get_db)):
     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
     if not answer:
@@ -365,7 +474,10 @@ def edit_answer_form(answer_id: int, request: Request, db: Session = Depends(get
     )
 
 
-@router.post("/answers/{answer_id}/edit")
+@router.post(
+    "/answers/{answer_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
 def edit_answer(
     answer_id: int,
     image_id: int = Form(...),
@@ -385,7 +497,10 @@ def edit_answer(
     return RedirectResponse(url="/ui/answers", status_code=303)
 
 
-@router.post("/answers/{answer_id}/delete")
+@router.post(
+    "/answers/{answer_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
 def delete_answer(answer_id: int, db: Session = Depends(get_db)):
     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
     if answer:
@@ -394,7 +509,11 @@ def delete_answer(answer_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(url="/ui/answers", status_code=303)
 
 
-@router.get("/annotations", response_class=HTMLResponse)
+@router.get(
+    "/annotations",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def list_annotations(request: Request, db: Session = Depends(get_db)):
     annotations = db.query(AnnotationModel).all()
     return templates.TemplateResponse(
@@ -402,12 +521,19 @@ def list_annotations(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/annotations/create", response_class=HTMLResponse)
+@router.get(
+    "/annotations/create",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def create_annotation_form(request: Request):
     return templates.TemplateResponse("annotation_form.html", {"request": request})
 
 
-@router.post("/annotations/create")
+@router.post(
+    "/annotations/create",
+    dependencies=[Depends(require_admin)],
+)
 def create_annotation(
     image_id: int = Form(...),
     label: str = Form(...),
@@ -432,7 +558,11 @@ def create_annotation(
     return RedirectResponse(url="/ui/annotations", status_code=303)
 
 
-@router.get("/annotations/{annotation_id}/edit", response_class=HTMLResponse)
+@router.get(
+    "/annotations/{annotation_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)],
+)
 def edit_annotation_form(
     annotation_id: int, request: Request, db: Session = Depends(get_db)
 ):
@@ -444,7 +574,10 @@ def edit_annotation_form(
     )
 
 
-@router.post("/annotations/{annotation_id}/edit")
+@router.post(
+    "/annotations/{annotation_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
 def edit_annotation(
     annotation_id: int,
     image_id: int = Form(...),
@@ -470,7 +603,10 @@ def edit_annotation(
     return RedirectResponse(url="/ui/annotations", status_code=303)
 
 
-@router.post("/annotations/{annotation_id}/delete")
+@router.post(
+    "/annotations/{annotation_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
 def delete_annotation(annotation_id: int, db: Session = Depends(get_db)):
     annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if annotation:
