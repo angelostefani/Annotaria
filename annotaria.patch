@@ -1,0 +1,590 @@
+diff --git a/routers/ui.py b/routers/ui.py
+index c99f48e5df5b83e2499cf225c079c39adf914733..9666e5aef689db8bcbef427a3683b026fd171f37 100644
+--- a/routers/ui.py
++++ b/routers/ui.py
+@@ -127,54 +127,58 @@ def login_user(
+     username: str = Form(...),
+     password: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     user = db.query(UserModel).filter_by(username=username).first()
+     if not user or not verify_password(password, user.hashed_password):
+         return templates.TemplateResponse(
+             "login.html", {"request": request, "error": "Invalid credentials"}
+         )
+     token = create_access_token({"sub": user.username})
+     response = RedirectResponse(url="/ui/images", status_code=303)
+     response.set_cookie("access_token", token, httponly=False)
+     return response
+ 
+ 
+ @router.post("/logout")
+ def logout_user():
+     response = RedirectResponse(url="/ui/login", status_code=303)
+     response.delete_cookie("access_token")
+     return response
+ 
+ 
+ @router.get(
+     "/images/upload",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def upload_image_form(request: Request):
+-    return templates.TemplateResponse("image_form.html", {"request": request})
++def upload_image_form(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
++    return templates.TemplateResponse(
++        "image_form.html", {"request": request, "user": user}
++    )
+ 
+ 
+ @router.post(
+     "/images/upload",
+     dependencies=[Depends(require_admin)],
+ )
+ async def upload_image(
+     request: Request,
+     file: UploadFile = File(...),
+     db: Session = Depends(get_db),
+ ):
+     file_path = IMAGE_DIR / file.filename
+     with open(file_path, "wb") as buffer:
+         shutil.copyfileobj(file.file, buffer)
+     register_image(file_path, db)
+     return RedirectResponse(url="/ui/images", status_code=303)
+ 
+ 
+ @router.get("/images/{image_id}", response_class=HTMLResponse)
+ def view_image(
+     image_id: int,
+     request: Request,
+     user: UserModel = Depends(require_user),
+     db: Session = Depends(get_db),
+ ):
+@@ -203,396 +207,437 @@ def view_image(
+         for a in (
+             db.query(AnnotationModel)
+             .filter_by(image_id=image_id, user_id=user.id)
+             .all()
+         )
+     ]
+ 
+     token = request.cookies.get("access_token")
+     return templates.TemplateResponse(
+         "image_detail.html",
+         {
+             "request": request,
+             "image": image,
+             "questions": questions,
+             "user": user,
+             "token": token,
+             "answer_map": answer_map,
+             "annotations": annotations,
+         },
+     )
+ 
+ 
+ @router.get(
+     "/images/{image_id}/edit",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def edit_image_form(image_id: int, request: Request, db: Session = Depends(get_db)):
++def edit_image_form(
++    image_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     image = db.query(ImageModel).filter_by(id=image_id).first()
+     if not image:
+         raise HTTPException(status_code=404, detail="Image not found")
+     return templates.TemplateResponse(
+-        "image_form.html", {"request": request, "image": image}
++        "image_form.html", {"request": request, "image": image, "user": user}
+     )
+ 
+ 
+ @router.post(
+     "/images/{image_id}/edit",
+     dependencies=[Depends(require_admin)],
+ )
+ def edit_image(
+     image_id: int,
+     filename: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     image = db.query(ImageModel).filter_by(id=image_id).first()
+     if not image:
+         raise HTTPException(status_code=404, detail="Image not found")
+     image.filename = filename
+     db.commit()
+     return RedirectResponse(url="/ui/images", status_code=303)
+ 
+ 
+ @router.post(
+     "/images/{image_id}/delete",
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_image(image_id: int, db: Session = Depends(get_db)):
+     image = db.query(ImageModel).filter_by(id=image_id).first()
+     if image:
+         file_path = Path(image.path)
+         if file_path.exists():
+             file_path.unlink()
+         db.delete(image)
+         db.commit()
+     return RedirectResponse(url="/ui/images", status_code=303)
+ 
+ 
+ @router.get(
+     "/questions",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def list_questions(request: Request, db: Session = Depends(get_db)):
++def list_questions(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     questions = db.query(QuestionModel).all()
+     return templates.TemplateResponse(
+-        "questions.html", {"request": request, "questions": questions}
++        "questions.html", {"request": request, "questions": questions, "user": user}
+     )
+ 
+ 
+ @router.get(
+     "/questions/create",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def create_question_form(request: Request):
+-    return templates.TemplateResponse("question_form.html", {"request": request})
++def create_question_form(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
++    return templates.TemplateResponse(
++        "question_form.html", {"request": request, "user": user}
++    )
+ 
+ 
+ @router.post(
+     "/questions/create",
+     dependencies=[Depends(require_admin)],
+ )
+ def create_question(
+     question_text: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     question = QuestionModel(question_text=question_text)
+     db.add(question)
+     db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.get(
+     "/questions/{question_id}/edit",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+ def edit_question_form(
+-    question_id: int, request: Request, db: Session = Depends(get_db)
++    question_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
+ ):
+     question = db.query(QuestionModel).filter_by(id=question_id).first()
+     if not question:
+         raise HTTPException(status_code=404, detail="Question not found")
+     return templates.TemplateResponse(
+-        "question_form.html", {"request": request, "question": question}
++        "question_form.html", {"request": request, "question": question, "user": user}
+     )
+ 
+ 
+ @router.post(
+     "/questions/{question_id}/edit",
+     dependencies=[Depends(require_admin)],
+ )
+ def edit_question(
+     question_id: int,
+     question_text: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     question = db.query(QuestionModel).filter_by(id=question_id).first()
+     if not question:
+         raise HTTPException(status_code=404, detail="Question not found")
+     question.question_text = question_text
+     db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.post(
+     "/questions/{question_id}/delete",
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_question(question_id: int, db: Session = Depends(get_db)):
+     question = db.query(QuestionModel).filter_by(id=question_id).first()
+     if question:
+         db.delete(question)
+         db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.get(
+     "/questions/{question_id}/options/create",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def create_option_form(question_id: int, request: Request):
++def create_option_form(
++    question_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
+     return templates.TemplateResponse(
+-        "option_form.html", {"request": request, "question_id": question_id}
++        "option_form.html", {"request": request, "question_id": question_id, "user": user}
+     )
+ 
+ 
+ @router.post(
+     "/questions/{question_id}/options/create",
+     dependencies=[Depends(require_admin)],
+ )
+ def create_option(
+     question_id: int,
+     option_text: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     option = OptionModel(question_id=question_id, option_text=option_text)
+     db.add(option)
+     db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.get(
+     "/options/{option_id}/edit",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def edit_option_form(option_id: int, request: Request, db: Session = Depends(get_db)):
++def edit_option_form(
++    option_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     option = db.query(OptionModel).filter_by(id=option_id).first()
+     if not option:
+         raise HTTPException(status_code=404, detail="Option not found")
+     return templates.TemplateResponse(
+-        "option_form.html", {"request": request, "option": option}
++        "option_form.html", {"request": request, "option": option, "user": user}
+     )
+ 
+ 
+ @router.post(
+     "/options/{option_id}/edit",
+     dependencies=[Depends(require_admin)],
+ )
+ def edit_option(
+     option_id: int,
+     option_text: str = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     option = db.query(OptionModel).filter_by(id=option_id).first()
+     if not option:
+         raise HTTPException(status_code=404, detail="Option not found")
+     option.option_text = option_text
+     db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.post(
+     "/options/{option_id}/delete",
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_option(option_id: int, db: Session = Depends(get_db)):
+     option = db.query(OptionModel).filter_by(id=option_id).first()
+     if option:
+         db.delete(option)
+         db.commit()
+     return RedirectResponse(url="/ui/questions", status_code=303)
+ 
+ 
+ @router.get(
+     "/answers",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def list_answers(request: Request, db: Session = Depends(get_db)):
++def list_answers(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     answers = db.query(AnswerModel).all()
+     return templates.TemplateResponse(
+-        "answers.html", {"request": request, "answers": answers}
++        "answers.html", {"request": request, "answers": answers, "user": user}
+     )
+ 
+ 
+ @router.get(
+     "/answers/create",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def create_answer_form(request: Request):
+-    return templates.TemplateResponse("answer_form.html", {"request": request})
++def create_answer_form(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
++    return templates.TemplateResponse(
++        "answer_form.html", {"request": request, "user": user}
++    )
+ 
+ 
+ @router.post(
+     "/answers/create",
+     dependencies=[Depends(require_admin)],
+ )
+ def create_answer(
+     image_id: int = Form(...),
+     question_id: int = Form(...),
+     selected_option_id: int = Form(...),
+     user_id: int = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     answer = AnswerModel(
+         image_id=image_id,
+         question_id=question_id,
+         selected_option_id=selected_option_id,
+         user_id=user_id,
+     )
+     db.add(answer)
+     db.commit()
+     return RedirectResponse(url="/ui/answers", status_code=303)
+ 
+ 
+ @router.get(
+     "/answers/{answer_id}/edit",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def edit_answer_form(answer_id: int, request: Request, db: Session = Depends(get_db)):
++def edit_answer_form(
++    answer_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
+     if not answer:
+         raise HTTPException(status_code=404, detail="Answer not found")
+     return templates.TemplateResponse(
+-        "answer_form.html", {"request": request, "answer": answer}
++        "answer_form.html", {"request": request, "answer": answer, "user": user}
+     )
+ 
+ 
+ @router.post(
+     "/answers/{answer_id}/edit",
+     dependencies=[Depends(require_admin)],
+ )
+ def edit_answer(
+     answer_id: int,
+     image_id: int = Form(...),
+     question_id: int = Form(...),
+     selected_option_id: int = Form(...),
+     user_id: int = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
+     if not answer:
+         raise HTTPException(status_code=404, detail="Answer not found")
+     answer.image_id = image_id
+     answer.question_id = question_id
+     answer.selected_option_id = selected_option_id
+     answer.user_id = user_id
+     db.commit()
+     return RedirectResponse(url="/ui/answers", status_code=303)
+ 
+ 
+ @router.post(
+     "/answers/{answer_id}/delete",
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_answer(answer_id: int, db: Session = Depends(get_db)):
+     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
+     if answer:
+         db.delete(answer)
+         db.commit()
+     return RedirectResponse(url="/ui/answers", status_code=303)
+ 
+ 
+ @router.get(
+     "/annotations",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def list_annotations(request: Request, db: Session = Depends(get_db)):
++def list_annotations(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
+     annotations = db.query(AnnotationModel).all()
+     return templates.TemplateResponse(
+-        "annotations.html", {"request": request, "annotations": annotations}
++        "annotations.html", {"request": request, "annotations": annotations, "user": user}
+     )
+ 
+ 
+ @router.get(
+     "/annotations/create",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+-def create_annotation_form(request: Request):
+-    return templates.TemplateResponse("annotation_form.html", {"request": request})
++def create_annotation_form(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
++    return templates.TemplateResponse(
++        "annotation_form.html", {"request": request, "user": user}
++    )
+ 
+ 
+ @router.post(
+     "/annotations/create",
+     dependencies=[Depends(require_admin)],
+ )
+ def create_annotation(
+     image_id: int = Form(...),
+     label: str = Form(...),
+     x: float = Form(...),
+     y: float = Form(...),
+     width: float = Form(...),
+     height: float = Form(...),
+     user_id: int = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     annotation = AnnotationModel(
+         image_id=image_id,
+         label=label,
+         x=x,
+         y=y,
+         width=width,
+         height=height,
+         user_id=user_id,
+     )
+     db.add(annotation)
+     db.commit()
+     return RedirectResponse(url="/ui/annotations", status_code=303)
+ 
+ 
+ @router.get(
+     "/annotations/{annotation_id}/edit",
+     response_class=HTMLResponse,
+-    dependencies=[Depends(require_admin)],
+ )
+ def edit_annotation_form(
+-    annotation_id: int, request: Request, db: Session = Depends(get_db)
++    annotation_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
+ ):
+     annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
+     if not annotation:
+         raise HTTPException(status_code=404, detail="Annotation not found")
+     return templates.TemplateResponse(
+-        "annotation_form.html", {"request": request, "annotation": annotation}
++        "annotation_form.html",
++        {"request": request, "annotation": annotation, "user": user},
+     )
+ 
+ 
+ @router.post(
+     "/annotations/{annotation_id}/edit",
+     dependencies=[Depends(require_admin)],
+ )
+ def edit_annotation(
+     annotation_id: int,
+     image_id: int = Form(...),
+     label: str = Form(...),
+     x: float = Form(...),
+     y: float = Form(...),
+     width: float = Form(...),
+     height: float = Form(...),
+     user_id: int = Form(...),
+     db: Session = Depends(get_db),
+ ):
+     annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
+     if not annotation:
+         raise HTTPException(status_code=404, detail="Annotation not found")
+     annotation.image_id = image_id
+     annotation.label = label
+     annotation.x = x
+     annotation.y = y
+diff --git a/templates/base.html b/templates/base.html
+index bb95a71df41370c97aea6ccdc44fb04b5b3f1a1d..6435fed166e84e4ed6e729e2ca985b901a535e75 100644
+--- a/templates/base.html
++++ b/templates/base.html
+@@ -1,43 +1,45 @@
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1">
+     <title>Annotaria</title>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+ </head>
+ <body>
+ <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+     <div class="container-fluid">
+         <a class="navbar-brand" href="/ui">Annotaria</a>
+         <div class="collapse navbar-collapse">
+             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                 <li class="nav-item"><a class="nav-link" href="/ui/images">Images</a></li>
++                {% if user and user.role == 'Amministratore' %}
+                 <li class="nav-item"><a class="nav-link" href="/ui/questions">Questions</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/answers">Answers</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/annotations">Annotations</a></li>
++                {% endif %}
+             </ul>
+             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                 {% if user %}
+                 <li class="nav-item">
+                     <span class="navbar-text me-2">Hello, {{ user.username }}</span>
+                 </li>
+                 <li class="nav-item">
+                     <form action="/ui/logout" method="post" class="d-inline">
+                         <button type="submit" class="btn btn-link nav-link">Logout</button>
+                     </form>
+                 </li>
+                 {% else %}
+                 <li class="nav-item"><a class="nav-link" href="/ui/login">Login</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/register">Register</a></li>
+                 {% endif %}
+             </ul>
+         </div>
+     </div>
+ </nav>
+ <div class="container">
+ {% block content %}{% endblock %}
+ </div>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+ </body>
+ </html>

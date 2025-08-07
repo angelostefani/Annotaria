@@ -149,10 +149,14 @@ def logout_user():
 @router.get(
     "/images/upload",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def upload_image_form(request: Request):
-    return templates.TemplateResponse("image_form.html", {"request": request})
+def upload_image_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "image_form.html", {"request": request, "user": user}
+    )
 
 
 @router.post(
@@ -225,14 +229,18 @@ def view_image(
 @router.get(
     "/images/{image_id}/edit",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def edit_image_form(image_id: int, request: Request, db: Session = Depends(get_db)):
+def edit_image_form(
+    image_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     return templates.TemplateResponse(
-        "image_form.html", {"request": request, "image": image}
+        "image_form.html", {"request": request, "image": image, "user": user}
     )
 
 
@@ -271,22 +279,29 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/questions",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def list_questions(request: Request, db: Session = Depends(get_db)):
+def list_questions(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     questions = db.query(QuestionModel).all()
     return templates.TemplateResponse(
-        "questions.html", {"request": request, "questions": questions}
+        "questions.html", {"request": request, "questions": questions, "user": user}
     )
 
 
 @router.get(
     "/questions/create",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def create_question_form(request: Request):
-    return templates.TemplateResponse("question_form.html", {"request": request})
+def create_question_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "question_form.html", {"request": request, "user": user}
+    )
 
 
 @router.post(
@@ -306,16 +321,18 @@ def create_question(
 @router.get(
     "/questions/{question_id}/edit",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
 def edit_question_form(
-    question_id: int, request: Request, db: Session = Depends(get_db)
+    question_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     return templates.TemplateResponse(
-        "question_form.html", {"request": request, "question": question}
+        "question_form.html", {"request": request, "question": question, "user": user}
     )
 
 
@@ -351,11 +368,14 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/questions/{question_id}/options/create",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def create_option_form(question_id: int, request: Request):
+def create_option_form(
+    question_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
     return templates.TemplateResponse(
-        "option_form.html", {"request": request, "question_id": question_id}
+        "option_form.html", {"request": request, "question_id": question_id, "user": user}
     )
 
 
@@ -377,14 +397,18 @@ def create_option(
 @router.get(
     "/options/{option_id}/edit",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def edit_option_form(option_id: int, request: Request, db: Session = Depends(get_db)):
+def edit_option_form(
+    option_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     option = db.query(OptionModel).filter_by(id=option_id).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
     return templates.TemplateResponse(
-        "option_form.html", {"request": request, "option": option}
+        "option_form.html", {"request": request, "option": option, "user": user}
     )
 
 
@@ -420,22 +444,29 @@ def delete_option(option_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/answers",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def list_answers(request: Request, db: Session = Depends(get_db)):
+def list_answers(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     answers = db.query(AnswerModel).all()
     return templates.TemplateResponse(
-        "answers.html", {"request": request, "answers": answers}
+        "answers.html", {"request": request, "answers": answers, "user": user}
     )
 
 
 @router.get(
     "/answers/create",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def create_answer_form(request: Request):
-    return templates.TemplateResponse("answer_form.html", {"request": request})
+def create_answer_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "answer_form.html", {"request": request, "user": user}
+    )
 
 
 @router.post(
@@ -463,14 +494,18 @@ def create_answer(
 @router.get(
     "/answers/{answer_id}/edit",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def edit_answer_form(answer_id: int, request: Request, db: Session = Depends(get_db)):
+def edit_answer_form(
+    answer_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     answer = db.query(AnswerModel).filter_by(id=answer_id).first()
     if not answer:
         raise HTTPException(status_code=404, detail="Answer not found")
     return templates.TemplateResponse(
-        "answer_form.html", {"request": request, "answer": answer}
+        "answer_form.html", {"request": request, "answer": answer, "user": user}
     )
 
 
@@ -512,22 +547,29 @@ def delete_answer(answer_id: int, db: Session = Depends(get_db)):
 @router.get(
     "/annotations",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def list_annotations(request: Request, db: Session = Depends(get_db)):
+def list_annotations(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
     annotations = db.query(AnnotationModel).all()
     return templates.TemplateResponse(
-        "annotations.html", {"request": request, "annotations": annotations}
+        "annotations.html", {"request": request, "annotations": annotations, "user": user}
     )
 
 
 @router.get(
     "/annotations/create",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
-def create_annotation_form(request: Request):
-    return templates.TemplateResponse("annotation_form.html", {"request": request})
+def create_annotation_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "annotation_form.html", {"request": request, "user": user}
+    )
 
 
 @router.post(
@@ -561,16 +603,19 @@ def create_annotation(
 @router.get(
     "/annotations/{annotation_id}/edit",
     response_class=HTMLResponse,
-    dependencies=[Depends(require_admin)],
 )
 def edit_annotation_form(
-    annotation_id: int, request: Request, db: Session = Depends(get_db)
+    annotation_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
     return templates.TemplateResponse(
-        "annotation_form.html", {"request": request, "annotation": annotation}
+        "annotation_form.html",
+        {"request": request, "annotation": annotation, "user": user},
     )
 
 
