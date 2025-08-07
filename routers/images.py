@@ -16,8 +16,9 @@ from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
 from database import get_db
-from models import Image as ImageModel
+from models import Image as ImageModel, User as UserModel
 from schemas import Image as ImageSchema, ImageDetail, ImageUpdate
+from main import get_current_user
 
 router = APIRouter()
 
@@ -33,6 +34,12 @@ def _convert_to_degrees(value, ref):
     d, m, s = value
     decimal = _ratio_to_float(d) + _ratio_to_float(m) / 60 + _ratio_to_float(s) / 3600
     return -decimal if ref in ["S", "W"] else decimal
+
+
+def require_admin(current_user: UserModel = Depends(get_current_user)):
+    if current_user.role != "Amministratore":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return current_user
 
 
 def extract_exif(path: Path):
@@ -127,7 +134,12 @@ def read_image(image_id: int, db: Session = Depends(get_db)):
     return image
 
 
-@router.post("/images/upload", response_model=ImageDetail, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/images/upload",
+    response_model=ImageDetail,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin)],
+)
 async def upload_image(
     file: UploadFile = File(..., description="Immagine da caricare"),
     db: Session = Depends(get_db),
@@ -141,7 +153,11 @@ async def upload_image(
     return register_image(file_path, db)
 
 
-@router.put("/images/{image_id}", response_model=ImageDetail)
+@router.put(
+    "/images/{image_id}",
+    response_model=ImageDetail,
+    dependencies=[Depends(require_admin)],
+)
 def update_image(image_id: int, image_data: ImageUpdate, db: Session = Depends(get_db)):
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
@@ -153,7 +169,11 @@ def update_image(image_id: int, image_data: ImageUpdate, db: Session = Depends(g
     return image
 
 
-@router.delete("/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/images/{image_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)],
+)
 def delete_image(image_id: int, db: Session = Depends(get_db)):
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:

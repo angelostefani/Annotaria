@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Question as QuestionModel, Option as OptionModel
+from models import Question as QuestionModel, Option as OptionModel, User as UserModel
+from main import get_current_user
 from schemas import (
     Question as QuestionSchema,
     QuestionCreate,
@@ -15,7 +16,17 @@ from schemas import (
 router = APIRouter()
 
 
-@router.post("/questions/", response_model=QuestionSchema)
+def require_admin(current_user: UserModel = Depends(get_current_user)):
+    if current_user.role != "Amministratore":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return current_user
+
+
+@router.post(
+    "/questions/",
+    response_model=QuestionSchema,
+    dependencies=[Depends(require_admin)],
+)
 def create_question(question: QuestionCreate, db: Session = Depends(get_db)):
     db_question = QuestionModel(question_text=question.question_text)
     db.add(db_question)
@@ -24,8 +35,14 @@ def create_question(question: QuestionCreate, db: Session = Depends(get_db)):
     return db_question
 
 
-@router.put("/questions/{question_id}", response_model=QuestionSchema)
-def update_question(question_id: int, question: QuestionCreate, db: Session = Depends(get_db)):
+@router.put(
+    "/questions/{question_id}",
+    response_model=QuestionSchema,
+    dependencies=[Depends(require_admin)],
+)
+def update_question(
+    question_id: int, question: QuestionCreate, db: Session = Depends(get_db)
+):
     db_question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not db_question:
         raise HTTPException(status_code=404, detail="Question not found")
@@ -35,7 +52,11 @@ def update_question(question_id: int, question: QuestionCreate, db: Session = De
     return db_question
 
 
-@router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/questions/{question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)],
+)
 def delete_question(question_id: int, db: Session = Depends(get_db)):
     db_question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not db_question:
@@ -50,8 +71,14 @@ def list_questions(db: Session = Depends(get_db)):
     return db.query(QuestionModel).all()
 
 
-@router.post("/questions/{question_id}/options", response_model=OptionSchema)
-def create_option(question_id: int, option: OptionCreate, db: Session = Depends(get_db)):
+@router.post(
+    "/questions/{question_id}/options",
+    response_model=OptionSchema,
+    dependencies=[Depends(require_admin)],
+)
+def create_option(
+    question_id: int, option: OptionCreate, db: Session = Depends(get_db)
+):
     if not db.query(QuestionModel).filter_by(id=question_id).first():
         raise HTTPException(status_code=404, detail="Question not found")
     db_option = OptionModel(question_id=question_id, option_text=option.option_text)
@@ -61,8 +88,14 @@ def create_option(question_id: int, option: OptionCreate, db: Session = Depends(
     return db_option
 
 
-@router.put("/options/{option_id}", response_model=OptionSchema)
-def update_option(option_id: int, option: OptionCreate, db: Session = Depends(get_db)):
+@router.put(
+    "/options/{option_id}",
+    response_model=OptionSchema,
+    dependencies=[Depends(require_admin)],
+)
+def update_option(
+    option_id: int, option: OptionCreate, db: Session = Depends(get_db)
+):
     db_option = db.query(OptionModel).filter_by(id=option_id).first()
     if not db_option:
         raise HTTPException(status_code=404, detail="Option not found")
@@ -72,7 +105,11 @@ def update_option(option_id: int, option: OptionCreate, db: Session = Depends(ge
     return db_option
 
 
-@router.delete("/options/{option_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/options/{option_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin)],
+)
 def delete_option(option_id: int, db: Session = Depends(get_db)):
     db_option = db.query(OptionModel).filter_by(id=option_id).first()
     if not db_option:
