@@ -8,13 +8,14 @@ Prefisso base: `http://localhost:8000/`
 ## 👤 AUTENTICAZIONE
 
 ### `POST /users/`
-Registra un nuovo utente.
+Registra un nuovo utente. Il campo `role` è opzionale e di default è `"Esperto"`.
 
 **Request Body**
 ```json
 {
   "username": "alice",
-  "password": "segreta"
+  "password": "segreta",
+  "role": "Esperto"
 }
 ```
 
@@ -22,7 +23,8 @@ Registra un nuovo utente.
 ```json
 {
   "id": 1,
-  "username": "alice"
+  "username": "alice",
+  "role": "Esperto"
 }
 ```
 
