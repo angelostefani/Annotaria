@@ -1,164 +1,8 @@
-diff --git a/routers/ui.py b/routers/ui.py
-index acc2b0b7bd6c0c62e1d28170e59fe87c07a911cb..9b8413498708e356b0620d0aa0eaab27e91dabb8 100644
---- a/routers/ui.py
-+++ b/routers/ui.py
-@@ -52,50 +52,56 @@ def get_current_user(request: Request, db: Session):
-     try:
-         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-         username = payload.get("sub")
-         if username is None:
-             return None
-     except JWTError:
-         return None
-     return db.query(UserModel).filter_by(username=username).first()
- 
- 
- def require_user(
-     request: Request, db: Session = Depends(get_db)
- ):
-     user = get_current_user(request, db)
-     if not user:
-         raise HTTPException(status_code=303, headers={"Location": "/ui/login"})
-     return user
- 
- 
- def require_admin(user: UserModel = Depends(require_user)):
-     if user.role != "Amministratore":
-         raise HTTPException(status_code=403, detail="Forbidden")
-     return user
- 
- 
-+def require_expert(user: UserModel = Depends(require_user)):
-+    if user.role != "Esperto":
-+        raise HTTPException(status_code=403, detail="Forbidden")
-+    return user
-+
-+
- @router.get("/images", response_class=HTMLResponse)
- def list_images(
-     request: Request,
-     user: UserModel = Depends(require_user),
-     db: Session = Depends(get_db),
- ):
-     for file in IMAGE_DIR.iterdir():
-         if file.is_file():
-             register_image(file, db)
-     images = db.query(ImageModel).options(joinedload(ImageModel.image_type)).all()
-     token = request.cookies.get("access_token")
-     return templates.TemplateResponse(
-         "images.html", {"request": request, "images": images, "user": user, "token": token}
-     )
- 
- 
- @router.get("/register", response_class=HTMLResponse)
- def register_form(request: Request):
-     return templates.TemplateResponse("register.html", {"request": request})
- 
- 
- @router.post("/register")
- def register_user(
-     request: Request,
-     username: str = Form(...),
-@@ -126,50 +132,87 @@ def login_form(request: Request):
- @router.post("/login")
- def login_user(
-     request: Request,
-     username: str = Form(...),
-     password: str = Form(...),
-     db: Session = Depends(get_db),
- ):
-     user = db.query(UserModel).filter_by(username=username).first()
-     if not user or not verify_password(password, user.hashed_password):
-         return templates.TemplateResponse(
-             "login.html", {"request": request, "error": "Invalid credentials"}
-         )
-     token = create_access_token({"sub": user.username})
-     response = RedirectResponse(url="/ui/images", status_code=303)
-     response.set_cookie("access_token", token, httponly=False)
-     return response
- 
- 
- @router.post("/logout")
- def logout_user():
-     response = RedirectResponse(url="/ui/login", status_code=303)
-     response.delete_cookie("access_token")
-     return response
- 
- 
-+@router.get("/my-expert-types", response_class=HTMLResponse)
-+def my_expert_types_form(
-+    request: Request,
-+    user: UserModel = Depends(require_expert),
-+    db: Session = Depends(get_db),
-+):
-+    types = db.query(ExpertTypeModel).all()
-+    user_type_ids = {t.id for t in user.expert_types}
-+    return templates.TemplateResponse(
-+        "my_expert_types.html",
-+        {
-+            "request": request,
-+            "types": types,
-+            "user": user,
-+            "user_type_ids": user_type_ids,
-+        },
-+    )
-+
-+
-+@router.post("/my-expert-types")
-+def update_my_expert_types(
-+    expert_type_ids: list[int] = Form([]),
-+    user: UserModel = Depends(require_expert),
-+    db: Session = Depends(get_db),
-+):
-+    expert_types = (
-+        db.query(ExpertTypeModel)
-+        .filter(ExpertTypeModel.id.in_(expert_type_ids))
-+        .all()
-+        if expert_type_ids
-+        else []
-+    )
-+    user.expert_types = expert_types
-+    db.commit()
-+    return RedirectResponse(url="/ui", status_code=303)
-+
-+
- @router.get(
-     "/images/upload",
-     response_class=HTMLResponse,
- )
- def upload_image_form(
-     request: Request,
-     user: UserModel = Depends(require_admin),
-     db: Session = Depends(get_db),
- ):
-     types = db.query(ImageTypeModel).all()
-     return templates.TemplateResponse(
-         "image_form.html", {"request": request, "user": user, "image_types": types}
-     )
- 
- 
- @router.post(
-     "/images/upload",
-     dependencies=[Depends(require_admin)],
- )
- async def upload_image(
-     request: Request,
-     file: UploadFile = File(...),
-     image_type_id: int | None = Form(None),
-     db: Session = Depends(get_db),
- ):
 diff --git a/templates/base.html b/templates/base.html
-index 706b4b73f3883140ffc3228f47d2717295070d5b..b16281037ac7ae687c1a4b94de948243eb293724 100644
+index b16281037ac7ae687c1a4b94de948243eb293724..3664bb288fdfa9660b531abb3e09788d37544b01 100644
 --- a/templates/base.html
 +++ b/templates/base.html
-@@ -1,48 +1,50 @@
- 
- <!DOCTYPE html>
- <html lang="en">
- <head>
-     <meta charset="UTF-8">
-     <meta name="viewport" content="width=device-width, initial-scale=1">
-     <title>Annotaria</title>
+@@ -8,44 +8,47 @@
      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
      <link rel="stylesheet" href="/static/css/style.css">
  </head>
@@ -175,8 +19,8 @@ index 706b4b73f3883140ffc3228f47d2717295070d5b..b16281037ac7ae687c1a4b94de948243
                  <li class="nav-item"><a class="nav-link" href="/ui/annotations">Annotations</a></li>
                  <li class="nav-item"><a class="nav-link" href="/ui/image-types">Image Types</a></li>
                  <li class="nav-item"><a class="nav-link" href="/ui/expert-types">Expert Types</a></li>
-+                {% elif user and user.role == 'Esperto' %}
-+                <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">My Expert Types</a></li>
+                 {% elif user and user.role == 'Esperto' %}
+                 <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">My Expert Types</a></li>
                  {% endif %}
              </ul>
              <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -184,6 +28,9 @@ index 706b4b73f3883140ffc3228f47d2717295070d5b..b16281037ac7ae687c1a4b94de948243
                  <li class="nav-item">
                      <span class="navbar-text me-2">Hello, {{ user.username }}</span>
                  </li>
++                {% if user.role == 'Esperto' %}
++                <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">Le mie tipologie</a></li>
++                {% endif %}
                  <li class="nav-item">
                      <form action="/ui/logout" method="post" class="d-inline">
                          <button type="submit" class="btn btn-link nav-link">Logout</button>
@@ -202,22 +49,4 @@ index 706b4b73f3883140ffc3228f47d2717295070d5b..b16281037ac7ae687c1a4b94de948243
  </div>
  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
  </body>
-diff --git a/templates/my_expert_types.html b/templates/my_expert_types.html
-new file mode 100644
-index 0000000000000000000000000000000000000000..9436e04a3edb7db9a0c7bb617787d372bf656fa8
---- /dev/null
-+++ b/templates/my_expert_types.html
-@@ -0,0 +1,13 @@
-+{% extends "base.html" %}
-+{% block content %}
-+<h1>My Expert Types</h1>
-+<form method="post" action="/ui/my-expert-types">
-+    {% for t in types %}
-+    <div class="form-check">
-+        <input class="form-check-input" type="checkbox" name="expert_type_ids" id="type{{ t.id }}" value="{{ t.id }}" {% if t.id in user_type_ids %}checked{% endif %}>
-+        <label class="form-check-label" for="type{{ t.id }}">{{ t.name }}</label>
-+    </div>
-+    {% endfor %}
-+    <button type="submit" class="btn btn-primary mt-3">Save</button>
-+</form>
-+{% endblock %}
+ </html>
