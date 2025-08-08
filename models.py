@@ -126,6 +126,9 @@ class Question(Base):
     )
     options = relationship("Option", back_populates="question")
     answers = relationship("Answer", back_populates="question")
+    image_types = relationship(
+        "ImageType", secondary=question_image_types, back_populates="questions"
+    )
 
 
 class Option(Base):
