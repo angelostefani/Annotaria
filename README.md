@@ -50,6 +50,9 @@ IMAGE_DIR=./image_data
 uvicorn main:app --reload
 ```
 
+nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>&1 &
+
+
 3. Visita: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
