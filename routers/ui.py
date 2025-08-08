@@ -10,6 +10,7 @@ from jose import JWTError, jwt
 from database import get_db
 from models import (
     Image as ImageModel,
+    ImageType as ImageTypeModel,
     Question as QuestionModel,
     Option as OptionModel,
     Answer as AnswerModel,
@@ -153,9 +154,11 @@ def logout_user():
 def upload_image_form(
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
+    types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "image_form.html", {"request": request, "user": user}
+        "image_form.html", {"request": request, "user": user, "image_types": types}
     )
 
 
@@ -166,12 +169,13 @@ def upload_image_form(
 async def upload_image(
     request: Request,
     file: UploadFile = File(...),
+    image_type_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
     file_path = IMAGE_DIR / file.filename
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    register_image(file_path, db)
+    register_image(file_path, db, image_type_id=image_type_id)
     return RedirectResponse(url="/ui/images", status_code=303)
 
 
@@ -239,8 +243,10 @@ def edit_image_form(
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "image_form.html", {"request": request, "image": image, "user": user}
+        "image_form.html",
+        {"request": request, "image": image, "user": user, "image_types": types},
     )
 
 
@@ -251,12 +257,14 @@ def edit_image_form(
 def edit_image(
     image_id: int,
     filename: str = Form(...),
+    image_type_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     image.filename = filename
+    image.image_type_id = image_type_id
     db.commit()
     return RedirectResponse(url="/ui/images", status_code=303)
 
@@ -274,6 +282,96 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
         db.delete(image)
         db.commit()
     return RedirectResponse(url="/ui/images", status_code=303)
+
+
+@router.get(
+    "/image-types",
+    response_class=HTMLResponse,
+)
+def list_image_types(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    types = db.query(ImageTypeModel).all()
+    return templates.TemplateResponse(
+        "image_types.html", {"request": request, "types": types, "user": user}
+    )
+
+
+@router.get(
+    "/image-types/create",
+    response_class=HTMLResponse,
+)
+def create_image_type_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "image_type_form.html", {"request": request, "user": user}
+    )
+
+
+@router.post(
+    "/image-types/create",
+    dependencies=[Depends(require_admin)],
+)
+def create_image_type(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    img_type = ImageTypeModel(name=name)
+    db.add(img_type)
+    db.commit()
+    return RedirectResponse(url="/ui/image-types", status_code=303)
+
+
+@router.get(
+    "/image-types/{type_id}/edit",
+    response_class=HTMLResponse,
+)
+def edit_image_type_form(
+    type_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    img_type = db.query(ImageTypeModel).filter_by(id=type_id).first()
+    if not img_type:
+        raise HTTPException(status_code=404, detail="Image type not found")
+    return templates.TemplateResponse(
+        "image_type_form.html",
+        {"request": request, "image_type": img_type, "user": user},
+    )
+
+
+@router.post(
+    "/image-types/{type_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
+def edit_image_type(
+    type_id: int,
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    img_type = db.query(ImageTypeModel).filter_by(id=type_id).first()
+    if not img_type:
+        raise HTTPException(status_code=404, detail="Image type not found")
+    img_type.name = name
+    db.commit()
+    return RedirectResponse(url="/ui/image-types", status_code=303)
+
+
+@router.post(
+    "/image-types/{type_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
+def delete_image_type(type_id: int, db: Session = Depends(get_db)):
+    img_type = db.query(ImageTypeModel).filter_by(id=type_id).first()
+    if img_type:
+        db.delete(img_type)
+        db.commit()
+    return RedirectResponse(url="/ui/image-types", status_code=303)
 
 
 @router.get(
