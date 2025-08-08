@@ -8,6 +8,14 @@
 <div class="d-flex justify-content-between">
     <div>
         {{ q.question_text }}
+        {% if q.image_types %}
+        <div class="small text-muted">
+        Image Types:
+        {% for t in q.image_types %}
+            {{ t.name }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+        </div>
+        {% endif %}
         <ul class="list-group mt-2">
         {% for opt in q.options %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
