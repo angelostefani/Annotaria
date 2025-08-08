@@ -21,6 +21,8 @@
                 <li class="nav-item"><a class="nav-link" href="/ui/annotations">Annotations</a></li>
                 <li class="nav-item"><a class="nav-link" href="/ui/image-types">Image Types</a></li>
                 <li class="nav-item"><a class="nav-link" href="/ui/expert-types">Expert Types</a></li>
+                {% elif user and user.role == 'Esperto' %}
+                <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">My Expert Types</a></li>
                 {% endif %}
             </ul>
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
