@@ -1,92 +1,116 @@
-diff --git a/schemas/__init__.py b/schemas/__init__.py
-index 7794dc0caf2e48bba941b0758c5d5b704a6017fc..9e8665420a6584ecd68bb00b6ef1cad4a57daca4 100644
---- a/schemas/__init__.py
-+++ b/schemas/__init__.py
-@@ -85,25 +85,26 @@ class QuestionCreate(QuestionBase):
- class Question(QuestionBase):
-     id: int
- 
-     class Config:
-         orm_mode = True
+diff --git a/main.py b/main.py
+index bf381d52eba0f8d0f45e75358ab876937bbc8d5d..3e8cc09cd04eae99414db1607c763d4ead017a29 100644
+--- a/main.py
++++ b/main.py
+@@ -64,38 +64,39 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
+     )
+     to_encode.update({"exp": expire})
+     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
  
  
- class OptionBase(BaseModel):
-     option_text: str
+ def get_current_user(
+     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+ ):
+     credentials_exception = HTTPException(
+         status_code=status.HTTP_401_UNAUTHORIZED,
+         detail="Could not validate credentials",
+         headers={"WWW-Authenticate": "Bearer"},
+     )
+     try:
+         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+         username: str | None = payload.get("sub")
+         if username is None:
+             raise credentials_exception
+     except JWTError:
+         raise credentials_exception
+     user = db.query(UserModel).filter_by(username=username).first()
+     if user is None:
+         raise credentials_exception
+     return user
  
+-from routers import annotations, answers, image_types, images, questions, users, ui
++from routers import annotations, answers, expert_types, image_types, images, questions, users, ui
+ from routers.images import IMAGE_DIR
  
- class OptionCreate(OptionBase):
-     pass
+ app.include_router(images.router)
+ app.include_router(image_types.router)
++app.include_router(expert_types.router)
+ app.include_router(questions.router)
+ app.include_router(answers.router)
+ app.include_router(annotations.router)
+ app.include_router(users.router)
+ app.include_router(ui.router)
  
+ app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")
  
- class Option(OptionBase):
-     id: int
-     question_id: int
- 
-     class Config:
-         orm_mode = True
- 
- 
- from .answer import Answer, AnswerCreate
- from .annotation import Annotation, AnnotationCreate, AnnotationUpdate
-+from .expert_type import ExpertType, ExpertTypeBase, ExpertTypeCreate
-diff --git a/schemas/expert_type.py b/schemas/expert_type.py
+diff --git a/routers/expert_types.py b/routers/expert_types.py
 new file mode 100644
-index 0000000000000000000000000000000000000000..bebff019b54b533b5e0af51cbf386fa9bf8d3a43
+index 0000000000000000000000000000000000000000..5ba82ba13afb407bb186422deea36cee556bce9d
 --- /dev/null
-+++ b/schemas/expert_type.py
-@@ -0,0 +1,16 @@
-+from pydantic import BaseModel
++++ b/routers/expert_types.py
+@@ -0,0 +1,65 @@
++from typing import List
++
++from fastapi import APIRouter, Depends, HTTPException, status
++from sqlalchemy.orm import Session
++
++from database import get_db
++from models import ExpertType as ExpertTypeModel, User as UserModel
++from schemas import ExpertType as ExpertTypeSchema, ExpertTypeCreate
++from main import get_current_user
++
++router = APIRouter()
 +
 +
-+class ExpertTypeBase(BaseModel):
-+    name: str
++def require_admin(current_user: UserModel = Depends(get_current_user)):
++    if current_user.role != "Amministratore":
++        raise HTTPException(status_code=403, detail="Forbidden")
++    return current_user
 +
 +
-+class ExpertTypeCreate(ExpertTypeBase):
-+    pass
++@router.post(
++    "/expert-types/",
++    response_model=ExpertTypeSchema,
++    dependencies=[Depends(require_admin)],
++)
++def create_expert_type(expert_type: ExpertTypeCreate, db: Session = Depends(get_db)):
++    db_type = ExpertTypeModel(name=expert_type.name)
++    db.add(db_type)
++    db.commit()
++    db.refresh(db_type)
++    return db_type
 +
 +
-+class ExpertType(ExpertTypeBase):
-+    id: int
++@router.put(
++    "/expert-types/{type_id}",
++    response_model=ExpertTypeSchema,
++    dependencies=[Depends(require_admin)],
++)
++def update_expert_type(type_id: int, expert_type: ExpertTypeCreate, db: Session = Depends(get_db)):
++    db_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
++    if not db_type:
++        raise HTTPException(status_code=404, detail="Expert type not found")
++    db_type.name = expert_type.name
++    db.commit()
++    db.refresh(db_type)
++    return db_type
 +
-+    class Config:
-+        orm_mode = True
-diff --git a/schemas/user.py b/schemas/user.py
-index ff6f416c13afc67ccafe2ed1e89898c55097f8cf..bc04641a5f4d4e5f19f6496c1e17db8a805959b3 100644
---- a/schemas/user.py
-+++ b/schemas/user.py
-@@ -1,31 +1,34 @@
- from pydantic import BaseModel
- 
-+from .expert_type import ExpertType
 +
- 
- class UserBase(BaseModel):
-     username: str
-     role: str = "Esperto"
- 
- 
- class UserCreate(UserBase):
-     password: str
- 
- 
- class UserLogin(BaseModel):
-     username: str
-     password: str
- 
- 
- class UserResponse(UserBase):
-     id: int
-+    expert_types: list[ExpertType] = []
- 
-     class Config:
-         orm_mode = True
- 
- 
- class Token(BaseModel):
-     access_token: str
-     token_type: str
- 
- 
- class TokenData(BaseModel):
-     username: str | None = None
++@router.delete(
++    "/expert-types/{type_id}",
++    status_code=status.HTTP_204_NO_CONTENT,
++    dependencies=[Depends(require_admin)],
++)
++def delete_expert_type(type_id: int, db: Session = Depends(get_db)):
++    db_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
++    if not db_type:
++        raise HTTPException(status_code=404, detail="Expert type not found")
++    db.delete(db_type)
++    db.commit()
++    return None
++
++
++@router.get("/expert-types/", response_model=List[ExpertTypeSchema])
++def list_expert_types(db: Session = Depends(get_db)):
++    return db.query(ExpertTypeModel).all()
++
