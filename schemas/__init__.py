@@ -107,3 +107,4 @@ class Option(OptionBase):
 
 from .answer import Answer, AnswerCreate
 from .annotation import Annotation, AnnotationCreate, AnnotationUpdate
+from .expert_type import ExpertType, ExpertTypeBase, ExpertTypeCreate
