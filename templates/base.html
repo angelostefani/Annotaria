@@ -30,6 +30,9 @@
                 <li class="nav-item">
                     <span class="navbar-text me-2">Hello, {{ user.username }}</span>
                 </li>
+                {% if user.role == 'Esperto' %}
+                <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">Le mie tipologie</a></li>
+                {% endif %}
                 <li class="nav-item">
                     <form action="/ui/logout" method="post" class="d-inline">
                         <button type="submit" class="btn btn-link nav-link">Logout</button>
