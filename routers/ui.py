@@ -74,6 +74,12 @@ def require_admin(user: UserModel = Depends(require_user)):
     return user
 
 
+def require_expert(user: UserModel = Depends(require_user)):
+    if user.role != "Esperto":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return user
+
+
 @router.get("/images", response_class=HTMLResponse)
 def list_images(
     request: Request,
@@ -146,6 +152,43 @@ def logout_user():
     response = RedirectResponse(url="/ui/login", status_code=303)
     response.delete_cookie("access_token")
     return response
+
+
+@router.get("/my-expert-types", response_class=HTMLResponse)
+def my_expert_types_form(
+    request: Request,
+    user: UserModel = Depends(require_expert),
+    db: Session = Depends(get_db),
+):
+    types = db.query(ExpertTypeModel).all()
+    user_type_ids = {t.id for t in user.expert_types}
+    return templates.TemplateResponse(
+        "my_expert_types.html",
+        {
+            "request": request,
+            "types": types,
+            "user": user,
+            "user_type_ids": user_type_ids,
+        },
+    )
+
+
+@router.post("/my-expert-types")
+def update_my_expert_types(
+    expert_type_ids: list[int] = Form([]),
+    user: UserModel = Depends(require_expert),
+    db: Session = Depends(get_db),
+):
+    expert_types = (
+        db.query(ExpertTypeModel)
+        .filter(ExpertTypeModel.id.in_(expert_type_ids))
+        .all()
+        if expert_type_ids
+        else []
+    )
+    user.expert_types = expert_types
+    db.commit()
+    return RedirectResponse(url="/ui", status_code=303)
 
 
 @router.get(

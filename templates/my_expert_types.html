@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>My Expert Types</h1>
+<form method="post" action="/ui/my-expert-types">
+    {% for t in types %}
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="expert_type_ids" id="type{{ t.id }}" value="{{ t.id }}" {% if t.id in user_type_ids %}checked{% endif %}>
+        <label class="form-check-label" for="type{{ t.id }}">{{ t.name }}</label>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary mt-3">Save</button>
+</form>
+{% endblock %}
