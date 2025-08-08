@@ -1,16 +1,18 @@
 # 📘 Documentazione API REST – AIRFARM
 
-Tutte le API restituiscono e accettano dati in formato JSON.  
+Tutte le API restituiscono e accettano dati in formato JSON.\
 Prefisso base: `http://localhost:8000/`
 
----
+______________________________________________________________________
 
 ## 👤 AUTENTICAZIONE
 
 ### `POST /users/`
+
 Registra un nuovo utente. Il campo `role` è opzionale e di default è `"Esperto"`.
 
 **Request Body**
+
 ```json
 {
   "username": "alice",
@@ -20,6 +22,7 @@ Registra un nuovo utente. Il campo `role` è opzionale e di default è `"Esperto
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 1,
@@ -29,14 +32,17 @@ Registra un nuovo utente. Il campo `role` è opzionale e di default è `"Esperto
 ```
 
 ### `POST /token`
+
 Esegue il login e restituisce un token JWT da usare nelle richieste protette.
 
 **Request Body** `application/x-www-form-urlencoded`
+
 ```
 username=<username>&password=<password>
 ```
 
 **Response 200 OK**
+
 ```json
 {
   "access_token": "<token>",
@@ -51,9 +57,11 @@ Per le rotte che richiedono autenticazione inviare l'header:
 ## 📁 IMMAGINI
 
 ### `GET /images`
+
 Restituisce l’elenco delle immagini disponibili nella directory configurata e sincronizza il DB.
 
 **Response 200 OK**
+
 ```json
 [
   {
@@ -68,15 +76,18 @@ Restituisce l’elenco delle immagini disponibili nella directory configurata e 
 ```
 
 ### `POST /images/upload`
+
 Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF. È possibile specificare una Tipologia Immagine già esistente.
 
 **Request** `multipart/form-data`
+
 ```
 file=<binary>
 image_type_id=1
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 2,
@@ -89,9 +100,11 @@ image_type_id=1
 ```
 
 ### `GET /images/{image_id}`
+
 Restituisce i dettagli di una singola immagine.
 
 **Response 200 OK**
+
 ```json
 {
   "id": 1,
@@ -106,9 +119,11 @@ Restituisce i dettagli di una singola immagine.
 ```
 
 ### `PUT /images/{image_id}`
+
 Aggiorna i metadati di un’immagine esistente.
 
 **Request Body**
+
 ```json
 {
   "filename": "nuovo_nome.jpg",
@@ -117,6 +132,7 @@ Aggiorna i metadati di un’immagine esistente.
 ```
 
 **Response 200 OK**
+
 ```json
 {
   "id": 1,
@@ -127,18 +143,21 @@ Aggiorna i metadati di un’immagine esistente.
 ```
 
 ### `DELETE /images/{image_id}`
+
 Rimuove un’immagine dal database e dal filesystem.
 
 **Response 204 No Content**
 
----
+______________________________________________________________________
 
 ## 🏷️ TIPOLOGIE IMMAGINE
 
 ### `GET /image-types/`
+
 Elenca tutte le tipologie immagine disponibili.
 
 **Response 200 OK**
+
 ```json
 [
   {
@@ -149,9 +168,11 @@ Elenca tutte le tipologie immagine disponibili.
 ```
 
 ### `POST /image-types/`
+
 Crea una nuova tipologia immagine.
 
 **Request Body**
+
 ```json
 {
   "name": "Termica"
@@ -159,6 +180,7 @@ Crea una nuova tipologia immagine.
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 2,
@@ -167,9 +189,11 @@ Crea una nuova tipologia immagine.
 ```
 
 ### `PUT /image-types/{type_id}`
+
 Aggiorna il nome di una tipologia esistente.
 
 **Request Body**
+
 ```json
 {
   "name": "Multispettrale"
@@ -177,6 +201,7 @@ Aggiorna il nome di una tipologia esistente.
 ```
 
 **Response 200 OK**
+
 ```json
 {
   "id": 2,
@@ -185,18 +210,21 @@ Aggiorna il nome di una tipologia esistente.
 ```
 
 ### `DELETE /image-types/{type_id}`
+
 Elimina una tipologia immagine.
 
 **Response 204 No Content**
 
----
+______________________________________________________________________
 
 ## ❓ DOMANDE E OPZIONI
 
 ### `GET /questions/`
+
 Elenca tutte le domande presenti nel sistema.
 
 **Response 200 OK**
+
 ```json
 [
   {
@@ -207,9 +235,11 @@ Elenca tutte le domande presenti nel sistema.
 ```
 
 ### `POST /questions/`
+
 Crea una nuova domanda.
 
 **Request Body**
+
 ```json
 {
   "question_text": "La pianta è infestata?"
@@ -217,6 +247,7 @@ Crea una nuova domanda.
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 5,
@@ -225,9 +256,11 @@ Crea una nuova domanda.
 ```
 
 ### `GET /questions/{question_id}/options`
+
 Restituisce tutte le opzioni associate a una domanda.
 
 **Response 200 OK**
+
 ```json
 [
   {
@@ -242,9 +275,11 @@ Restituisce tutte le opzioni associate a una domanda.
 ```
 
 ### `POST /questions/{question_id}/options`
+
 Aggiunge una nuova opzione a una domanda esistente.
 
 **Request Body**
+
 ```json
 {
   "option_text": "Non determinabile"
@@ -252,6 +287,7 @@ Aggiunge una nuova opzione a una domanda esistente.
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 12,
@@ -260,16 +296,18 @@ Aggiunge una nuova opzione a una domanda esistente.
 }
 ```
 
----
+______________________________________________________________________
 
 ## 📝 RISPOSTE
 
 Richiede autenticazione; l'utente associato viene determinato dal token presente nell'header `Authorization: Bearer <token>`.
 
 ### `POST /answers/`
+
 Registra la risposta fornita per una determinata immagine e domanda. L'associazione all'utente è automatica e non va specificato `user_id` nel body.
 
 **Request Body**
+
 ```json
 {
   "image_id": 1,
@@ -279,6 +317,7 @@ Registra la risposta fornita per una determinata immagine e domanda. L'associazi
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 33,
@@ -289,16 +328,18 @@ Registra la risposta fornita per una determinata immagine e domanda. L'associazi
 }
 ```
 
----
+______________________________________________________________________
 
 ## 🎯 ANNOTAZIONI
 
 Richiede autenticazione; le annotazioni vengono collegate all'utente identificato dal token nell'header `Authorization`.
 
 ### `POST /annotations/`
+
 Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `user_id` è gestito automaticamente.
 
 **Request Body**
+
 ```json
 {
   "image_id": 1,
@@ -311,6 +352,7 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `
 ```
 
 **Response 201 Created**
+
 ```json
 {
   "id": 14,
@@ -325,9 +367,11 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `
 ```
 
 ### `GET /annotations/{image_id}`
+
 Restituisce tutte le annotazioni dell'utente autenticato per una determinata immagine.
 
 **Response 200 OK**
+
 ```json
 [
   {
@@ -344,9 +388,11 @@ Restituisce tutte le annotazioni dell'utente autenticato per una determinata imm
 ```
 
 ### `PUT /annotations/{annotation_id}`
+
 Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modificati.
 
 **Request Body**
+
 ```json
 {
   "label": "foglia sana",
@@ -355,6 +401,7 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
 ```
 
 **Response 200 OK**
+
 ```json
 {
   "id": 14,
@@ -369,8 +416,9 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
 ```
 
 ### `DELETE /annotations/{annotation_id}`
+
 Elimina un'annotazione esistente.
 
 **Response 204 No Content**
 
----
+______________________________________________________________________

@@ -2,7 +2,7 @@
 
 Questa guida fornisce esempi pratici di richieste alle API REST del progetto Annotaria.
 
----
+______________________________________________________________________
 
 ## 📷 Recupero immagini
 
@@ -39,7 +39,7 @@ curl -X PUT http://localhost:8000/images/1 \
 curl -X DELETE http://localhost:8000/images/1
 ```
 
----
+______________________________________________________________________
 
 ## ➕ Creazione di una domanda
 
@@ -51,7 +51,7 @@ curl -X POST http://localhost:8000/questions/ \
   -d '{"question_text": "Qual è la condizione del raccolto?"}'
 ```
 
----
+______________________________________________________________________
 
 ## ➕ Aggiunta di opzioni a una domanda
 
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8000/questions/1/options \
   -d '{"option_text": "Secco"}'
 ```
 
----
+______________________________________________________________________
 
 ## 📝 Invio di una risposta
 
@@ -79,7 +79,7 @@ curl -X POST http://localhost:8000/answers/ \
 }'
 ```
 
----
+______________________________________________________________________
 
 ## 🖍️ Annotazione di una regione dell’immagine
 
@@ -98,7 +98,7 @@ curl -X POST http://localhost:8000/annotations/ \
 }'
 ```
 
----
+______________________________________________________________________
 
 ## ✅ Visualizzazione domande e opzioni
 
@@ -114,8 +114,7 @@ curl http://localhost:8000/questions/
 curl http://localhost:8000/questions/1/options
 ```
 
----
-
+______________________________________________________________________
 
 > 🔧 Tutte le richieste usano `Content-Type: application/json`.
 > Assicurati che l'API sia in esecuzione su `localhost:8000`.
