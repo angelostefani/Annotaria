@@ -61,17 +61,19 @@ Restituisce l’elenco delle immagini disponibili nella directory configurata e 
     "filename": "immagine1.jpg",
     "url": "/static/immagine1.jpg",
     "exif_camera_model": "DJI Mavic Air 2",
-    "exif_datetime": "2025-07-31 14:30:00"
+    "exif_datetime": "2025-07-31 14:30:00",
+    "image_type_id": 1
   }
 ]
 ```
 
 ### `POST /images/upload`
-Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF.
+Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF. È possibile specificare una Tipologia Immagine già esistente.
 
 **Request** `multipart/form-data`
 ```
 file=<binary>
+image_type_id=1
 ```
 
 **Response 201 Created**
@@ -80,6 +82,7 @@ file=<binary>
   "id": 2,
   "filename": "nuova.jpg",
   "path": "./image_data/nuova.jpg",
+  "image_type_id": 1,
   "exif_camera_model": "DJI Mavic Air 2",
   "exif_datetime": "2025-07-31 14:30:00"
 }
@@ -94,7 +97,11 @@ Restituisce i dettagli di una singola immagine.
   "id": 1,
   "filename": "immagine1.jpg",
   "path": "./image_data/immagine1.jpg",
-  "exif_camera_model": "DJI Mavic Air 2"
+  "exif_camera_model": "DJI Mavic Air 2",
+  "image_type": {
+    "id": 1,
+    "name": "Aerea"
+  }
 }
 ```
 
@@ -104,7 +111,8 @@ Aggiorna i metadati di un’immagine esistente.
 **Request Body**
 ```json
 {
-  "filename": "nuovo_nome.jpg"
+  "filename": "nuovo_nome.jpg",
+  "image_type_id": 2
 }
 ```
 
@@ -113,12 +121,71 @@ Aggiorna i metadati di un’immagine esistente.
 {
   "id": 1,
   "filename": "nuovo_nome.jpg",
-  "path": "./image_data/nuovo_nome.jpg"
+  "path": "./image_data/nuovo_nome.jpg",
+  "image_type_id": 2
 }
 ```
 
 ### `DELETE /images/{image_id}`
 Rimuove un’immagine dal database e dal filesystem.
+
+**Response 204 No Content**
+
+---
+
+## 🏷️ TIPOLOGIE IMMAGINE
+
+### `GET /image-types/`
+Elenca tutte le tipologie immagine disponibili.
+
+**Response 200 OK**
+```json
+[
+  {
+    "id": 1,
+    "name": "Aerea"
+  }
+]
+```
+
+### `POST /image-types/`
+Crea una nuova tipologia immagine.
+
+**Request Body**
+```json
+{
+  "name": "Termica"
+}
+```
+
+**Response 201 Created**
+```json
+{
+  "id": 2,
+  "name": "Termica"
+}
+```
+
+### `PUT /image-types/{type_id}`
+Aggiorna il nome di una tipologia esistente.
+
+**Request Body**
+```json
+{
+  "name": "Multispettrale"
+}
+```
+
+**Response 200 OK**
+```json
+{
+  "id": 2,
+  "name": "Multispettrale"
+}
+```
+
+### `DELETE /image-types/{type_id}`
+Elimina una tipologia immagine.
 
 **Response 204 No Content**
 

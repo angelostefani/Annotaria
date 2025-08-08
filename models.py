@@ -17,6 +17,15 @@ class User(Base):
     annotations = relationship("Annotation", back_populates="user")
 
 
+class ImageType(Base):
+    __tablename__ = "image_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+    images = relationship("Image", back_populates="image_type")
+
+
 class Image(Base):
     __tablename__ = "images"
 
@@ -44,6 +53,9 @@ class Image(Base):
     exif_pitch = Column(Float)
     exif_roll = Column(Float)
     exif_yaw = Column(Float)
+
+    image_type_id = Column(Integer, ForeignKey("image_types.id"))
+    image_type = relationship("ImageType", back_populates="images")
 
     answers = relationship("Answer", back_populates="image")
     annotations = relationship("Annotation", back_populates="image")
