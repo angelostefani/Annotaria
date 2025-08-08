@@ -1,5 +1,6 @@
 from pathlib import Path
 import shutil
+from typing import List
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -233,7 +234,12 @@ def view_image(
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
-    questions = db.query(QuestionModel).all()
+    questions_query = db.query(QuestionModel)
+    if image.image_type_id:
+        questions_query = questions_query.join(QuestionModel.image_types).filter(
+            ImageTypeModel.id == image.image_type_id
+        )
+    questions = questions_query.all()
     for q in questions:
         _ = q.options
 
@@ -518,6 +524,9 @@ def list_questions(
     db: Session = Depends(get_db),
 ):
     questions = db.query(QuestionModel).all()
+    for q in questions:
+        _ = q.options
+        _ = q.image_types
     return templates.TemplateResponse(
         "questions.html", {"request": request, "questions": questions, "user": user}
     )
@@ -530,9 +539,11 @@ def list_questions(
 def create_question_form(
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
+    types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "question_form.html", {"request": request, "user": user}
+        "question_form.html", {"request": request, "user": user, "image_types": types}
     )
 
 
@@ -542,9 +553,16 @@ def create_question_form(
 )
 def create_question(
     question_text: str = Form(...),
+    image_type_ids: List[int] | None = Form(None),
     db: Session = Depends(get_db),
 ):
     question = QuestionModel(question_text=question_text)
+    if image_type_ids:
+        question.image_types = (
+            db.query(ImageTypeModel)
+            .filter(ImageTypeModel.id.in_(image_type_ids))
+            .all()
+        )
     db.add(question)
     db.commit()
     return RedirectResponse(url="/ui/questions", status_code=303)
@@ -563,8 +581,11 @@ def edit_question_form(
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
+    _ = question.image_types
+    types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "question_form.html", {"request": request, "question": question, "user": user}
+        "question_form.html",
+        {"request": request, "question": question, "user": user, "image_types": types},
     )
 
 
@@ -575,12 +596,20 @@ def edit_question_form(
 def edit_question(
     question_id: int,
     question_text: str = Form(...),
+    image_type_ids: List[int] | None = Form(None),
     db: Session = Depends(get_db),
 ):
     question = db.query(QuestionModel).filter_by(id=question_id).first()
     if not question:
         raise HTTPException(status_code=404, detail="Question not found")
     question.question_text = question_text
+    question.image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(image_type_ids))
+        .all()
+        if image_type_ids
+        else []
+    )
     db.commit()
     return RedirectResponse(url="/ui/questions", status_code=303)
 

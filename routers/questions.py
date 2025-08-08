@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Question as QuestionModel, Option as OptionModel, User as UserModel
+from models import (
+    Question as QuestionModel,
+    Option as OptionModel,
+    User as UserModel,
+    ImageType as ImageTypeModel,
+)
 from main import get_current_user
 from schemas import (
     Question as QuestionSchema,
@@ -29,6 +34,12 @@ def require_admin(current_user: UserModel = Depends(get_current_user)):
 )
 def create_question(question: QuestionCreate, db: Session = Depends(get_db)):
     db_question = QuestionModel(question_text=question.question_text)
+    if question.image_type_ids:
+        db_question.image_types = (
+            db.query(ImageTypeModel)
+            .filter(ImageTypeModel.id.in_(question.image_type_ids))
+            .all()
+        )
     db.add(db_question)
     db.commit()
     db.refresh(db_question)
@@ -47,6 +58,13 @@ def update_question(
     if not db_question:
         raise HTTPException(status_code=404, detail="Question not found")
     db_question.question_text = question.question_text
+    db_question.image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(question.image_type_ids))
+        .all()
+        if question.image_type_ids
+        else []
+    )
     db.commit()
     db.refresh(db_question)
     return db_question

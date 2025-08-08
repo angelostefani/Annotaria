@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -79,11 +81,12 @@ class QuestionBase(BaseModel):
 
 
 class QuestionCreate(QuestionBase):
-    pass
+    image_type_ids: List[int] = []
 
 
 class Question(QuestionBase):
     id: int
+    image_types: List[ImageType] = []
 
     class Config:
         orm_mode = True
