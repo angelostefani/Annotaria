@@ -4,7 +4,7 @@ import shutil
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from jose import JWTError, jwt
 
 from database import get_db
@@ -82,7 +82,7 @@ def list_images(
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    images = db.query(ImageModel).all()
+    images = db.query(ImageModel).options(joinedload(ImageModel.image_type)).all()
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
         "images.html", {"request": request, "images": images, "user": user, "token": token}

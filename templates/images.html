@@ -4,13 +4,20 @@
 <a href="/ui/images/upload" class="btn btn-primary mb-3">Upload Image</a>
 <table class="table table-striped" style="border: 1px solid #dee2e6; border-radius: 6px;">
 <thead>
-    <tr><th>ID</th><th>Filename</th><th>Actions</th></tr>
+    <tr><th>ID</th><th>Filename</th><th>Tipologia Immagine</th><th>exif_datetime</th><th>exif_gps_lat</th><th>exif_gps_lon</th><th>exif_gps_alt</th><th>exif_camera_make</th><th>exif_camera_model</th><th>Actions</th></tr>
 </thead>
 <tbody>
 {% for img in images %}
 <tr>
 <td>{{ img.id }}</td>
 <td>{{ img.filename }}</td>
+<td>{{ img.image_type.name if img.image_type else "" }}</td>
+<td>{{ img.exif_datetime }}</td>
+<td>{{ img.exif_gps_lat }}</td>
+<td>{{ img.exif_gps_lon }}</td>
+<td>{{ img.exif_gps_alt }}</td>
+<td>{{ img.exif_camera_make }}</td>
+<td>{{ img.exif_camera_model }}</td>
 <td>
     <a href="/ui/images/{{ img.id }}" class="btn btn-sm btn-primary">View</a>
     <a href="/ui/images/{{ img.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
