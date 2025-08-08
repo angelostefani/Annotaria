@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from .expert_type import ExpertType
+
 
 class UserBase(BaseModel):
     username: str
@@ -17,6 +19,7 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    expert_types: list[ExpertType] = []
 
     class Config:
         orm_mode = True

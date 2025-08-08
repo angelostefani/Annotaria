@@ -1,8 +1,30 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    Text,
+    ForeignKey,
+    DateTime,
+    Table,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from database import Base
+
+
+user_expert_types = Table(
+    "user_expert_types",
+    Base.metadata,
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "expert_type_id",
+        Integer,
+        ForeignKey("expert_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
 
 class User(Base):
@@ -15,6 +37,18 @@ class User(Base):
 
     answers = relationship("Answer", back_populates="user")
     annotations = relationship("Annotation", back_populates="user")
+    expert_types = relationship(
+        "ExpertType", secondary=user_expert_types, back_populates="users"
+    )
+
+
+class ExpertType(Base):
+    __tablename__ = "expert_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+    users = relationship("User", secondary=user_expert_types, back_populates="expert_types")
 
 
 class ImageType(Base):
