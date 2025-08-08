@@ -11,6 +11,7 @@ from database import get_db
 from models import (
     Image as ImageModel,
     ImageType as ImageTypeModel,
+    ExpertType as ExpertTypeModel,
     Question as QuestionModel,
     Option as OptionModel,
     Answer as AnswerModel,
@@ -372,6 +373,96 @@ def delete_image_type(type_id: int, db: Session = Depends(get_db)):
         db.delete(img_type)
         db.commit()
     return RedirectResponse(url="/ui/image-types", status_code=303)
+
+
+@router.get(
+    "/expert-types",
+    response_class=HTMLResponse,
+)
+def list_expert_types(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    types = db.query(ExpertTypeModel).all()
+    return templates.TemplateResponse(
+        "expert_types.html", {"request": request, "types": types, "user": user}
+    )
+
+
+@router.get(
+    "/expert-types/create",
+    response_class=HTMLResponse,
+)
+def create_expert_type_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "expert_type_form.html", {"request": request, "user": user}
+    )
+
+
+@router.post(
+    "/expert-types/create",
+    dependencies=[Depends(require_admin)],
+)
+def create_expert_type(
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    expert_type = ExpertTypeModel(name=name)
+    db.add(expert_type)
+    db.commit()
+    return RedirectResponse(url="/ui/expert-types", status_code=303)
+
+
+@router.get(
+    "/expert-types/{type_id}/edit",
+    response_class=HTMLResponse,
+)
+def edit_expert_type_form(
+    type_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
+    if not expert_type:
+        raise HTTPException(status_code=404, detail="Expert type not found")
+    return templates.TemplateResponse(
+        "expert_type_form.html",
+        {"request": request, "expert_type": expert_type, "user": user},
+    )
+
+
+@router.post(
+    "/expert-types/{type_id}/edit",
+    dependencies=[Depends(require_admin)],
+)
+def edit_expert_type(
+    type_id: int,
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
+    if not expert_type:
+        raise HTTPException(status_code=404, detail="Expert type not found")
+    expert_type.name = name
+    db.commit()
+    return RedirectResponse(url="/ui/expert-types", status_code=303)
+
+
+@router.post(
+    "/expert-types/{type_id}/delete",
+    dependencies=[Depends(require_admin)],
+)
+def delete_expert_type(type_id: int, db: Session = Depends(get_db)):
+    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
+    if expert_type:
+        db.delete(expert_type)
+        db.commit()
+    return RedirectResponse(url="/ui/expert-types", status_code=303)
 
 
 @router.get(

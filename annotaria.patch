@@ -1,116 +1,279 @@
-diff --git a/main.py b/main.py
-index bf381d52eba0f8d0f45e75358ab876937bbc8d5d..3e8cc09cd04eae99414db1607c763d4ead017a29 100644
---- a/main.py
-+++ b/main.py
-@@ -64,38 +64,39 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
-     )
-     to_encode.update({"exp": expire})
-     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+diff --git a/routers/ui.py b/routers/ui.py
+index a22d18cd0226041121c7f3195b07f13a4d7c0a3c..acc2b0b7bd6c0c62e1d28170e59fe87c07a911cb 100644
+--- a/routers/ui.py
++++ b/routers/ui.py
+@@ -1,38 +1,39 @@
+ from pathlib import Path
+ import shutil
+ 
+ from fastapi import APIRouter, Depends, Form, HTTPException, Request, UploadFile, File
+ from fastapi.responses import HTMLResponse, RedirectResponse
+ from fastapi.templating import Jinja2Templates
+ from sqlalchemy.orm import Session, joinedload
+ from jose import JWTError, jwt
+ 
+ from database import get_db
+ from models import (
+     Image as ImageModel,
+     ImageType as ImageTypeModel,
++    ExpertType as ExpertTypeModel,
+     Question as QuestionModel,
+     Option as OptionModel,
+     Answer as AnswerModel,
+     Annotation as AnnotationModel,
+     User as UserModel,
+ )
+ from routers.images import IMAGE_DIR, register_image
+ from main import (
+     create_access_token,
+     get_password_hash,
+     verify_password,
+     SECRET_KEY,
+     ALGORITHM,
+ )
+ 
+ templates = Jinja2Templates(directory="templates")
+ 
+ router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
  
  
- def get_current_user(
-     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+ @router.get("/", response_class=HTMLResponse)
+ def ui_root(request: Request, db: Session = Depends(get_db)):
+     """Serve the UI entry point.
+ 
+     If the user is authenticated, redirect them to the image list; otherwise
+@@ -352,50 +353,140 @@ def edit_image_type_form(
+ def edit_image_type(
+     type_id: int,
+     name: str = Form(...),
+     db: Session = Depends(get_db),
  ):
-     credentials_exception = HTTPException(
-         status_code=status.HTTP_401_UNAUTHORIZED,
-         detail="Could not validate credentials",
-         headers={"WWW-Authenticate": "Bearer"},
-     )
-     try:
-         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-         username: str | None = payload.get("sub")
-         if username is None:
-             raise credentials_exception
-     except JWTError:
-         raise credentials_exception
-     user = db.query(UserModel).filter_by(username=username).first()
-     if user is None:
-         raise credentials_exception
-     return user
+     img_type = db.query(ImageTypeModel).filter_by(id=type_id).first()
+     if not img_type:
+         raise HTTPException(status_code=404, detail="Image type not found")
+     img_type.name = name
+     db.commit()
+     return RedirectResponse(url="/ui/image-types", status_code=303)
  
--from routers import annotations, answers, image_types, images, questions, users, ui
-+from routers import annotations, answers, expert_types, image_types, images, questions, users, ui
- from routers.images import IMAGE_DIR
  
- app.include_router(images.router)
- app.include_router(image_types.router)
-+app.include_router(expert_types.router)
- app.include_router(questions.router)
- app.include_router(answers.router)
- app.include_router(annotations.router)
- app.include_router(users.router)
- app.include_router(ui.router)
+ @router.post(
+     "/image-types/{type_id}/delete",
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_image_type(type_id: int, db: Session = Depends(get_db)):
+     img_type = db.query(ImageTypeModel).filter_by(id=type_id).first()
+     if img_type:
+         db.delete(img_type)
+         db.commit()
+     return RedirectResponse(url="/ui/image-types", status_code=303)
  
- app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")
  
-diff --git a/routers/expert_types.py b/routers/expert_types.py
-new file mode 100644
-index 0000000000000000000000000000000000000000..5ba82ba13afb407bb186422deea36cee556bce9d
---- /dev/null
-+++ b/routers/expert_types.py
-@@ -0,0 +1,65 @@
-+from typing import List
-+
-+from fastapi import APIRouter, Depends, HTTPException, status
-+from sqlalchemy.orm import Session
-+
-+from database import get_db
-+from models import ExpertType as ExpertTypeModel, User as UserModel
-+from schemas import ExpertType as ExpertTypeSchema, ExpertTypeCreate
-+from main import get_current_user
-+
-+router = APIRouter()
++@router.get(
++    "/expert-types",
++    response_class=HTMLResponse,
++)
++def list_expert_types(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
++    types = db.query(ExpertTypeModel).all()
++    return templates.TemplateResponse(
++        "expert_types.html", {"request": request, "types": types, "user": user}
++    )
 +
 +
-+def require_admin(current_user: UserModel = Depends(get_current_user)):
-+    if current_user.role != "Amministratore":
-+        raise HTTPException(status_code=403, detail="Forbidden")
-+    return current_user
++@router.get(
++    "/expert-types/create",
++    response_class=HTMLResponse,
++)
++def create_expert_type_form(
++    request: Request,
++    user: UserModel = Depends(require_admin),
++):
++    return templates.TemplateResponse(
++        "expert_type_form.html", {"request": request, "user": user}
++    )
 +
 +
 +@router.post(
-+    "/expert-types/",
-+    response_model=ExpertTypeSchema,
++    "/expert-types/create",
 +    dependencies=[Depends(require_admin)],
 +)
-+def create_expert_type(expert_type: ExpertTypeCreate, db: Session = Depends(get_db)):
-+    db_type = ExpertTypeModel(name=expert_type.name)
-+    db.add(db_type)
++def create_expert_type(
++    name: str = Form(...),
++    db: Session = Depends(get_db),
++):
++    expert_type = ExpertTypeModel(name=name)
++    db.add(expert_type)
 +    db.commit()
-+    db.refresh(db_type)
-+    return db_type
++    return RedirectResponse(url="/ui/expert-types", status_code=303)
 +
 +
-+@router.put(
-+    "/expert-types/{type_id}",
-+    response_model=ExpertTypeSchema,
-+    dependencies=[Depends(require_admin)],
++@router.get(
++    "/expert-types/{type_id}/edit",
++    response_class=HTMLResponse,
 +)
-+def update_expert_type(type_id: int, expert_type: ExpertTypeCreate, db: Session = Depends(get_db)):
-+    db_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
-+    if not db_type:
++def edit_expert_type_form(
++    type_id: int,
++    request: Request,
++    user: UserModel = Depends(require_admin),
++    db: Session = Depends(get_db),
++):
++    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
++    if not expert_type:
 +        raise HTTPException(status_code=404, detail="Expert type not found")
-+    db_type.name = expert_type.name
++    return templates.TemplateResponse(
++        "expert_type_form.html",
++        {"request": request, "expert_type": expert_type, "user": user},
++    )
++
++
++@router.post(
++    "/expert-types/{type_id}/edit",
++    dependencies=[Depends(require_admin)],
++)
++def edit_expert_type(
++    type_id: int,
++    name: str = Form(...),
++    db: Session = Depends(get_db),
++):
++    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
++    if not expert_type:
++        raise HTTPException(status_code=404, detail="Expert type not found")
++    expert_type.name = name
 +    db.commit()
-+    db.refresh(db_type)
-+    return db_type
++    return RedirectResponse(url="/ui/expert-types", status_code=303)
 +
 +
-+@router.delete(
-+    "/expert-types/{type_id}",
-+    status_code=status.HTTP_204_NO_CONTENT,
++@router.post(
++    "/expert-types/{type_id}/delete",
 +    dependencies=[Depends(require_admin)],
 +)
 +def delete_expert_type(type_id: int, db: Session = Depends(get_db)):
-+    db_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
-+    if not db_type:
-+        raise HTTPException(status_code=404, detail="Expert type not found")
-+    db.delete(db_type)
-+    db.commit()
-+    return None
++    expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
++    if expert_type:
++        db.delete(expert_type)
++        db.commit()
++    return RedirectResponse(url="/ui/expert-types", status_code=303)
 +
 +
-+@router.get("/expert-types/", response_model=List[ExpertTypeSchema])
-+def list_expert_types(db: Session = Depends(get_db)):
-+    return db.query(ExpertTypeModel).all()
-+
+ @router.get(
+     "/questions",
+     response_class=HTMLResponse,
+ )
+ def list_questions(
+     request: Request,
+     user: UserModel = Depends(require_admin),
+     db: Session = Depends(get_db),
+ ):
+     questions = db.query(QuestionModel).all()
+     return templates.TemplateResponse(
+         "questions.html", {"request": request, "questions": questions, "user": user}
+     )
+ 
+ 
+ @router.get(
+     "/questions/create",
+     response_class=HTMLResponse,
+ )
+ def create_question_form(
+     request: Request,
+     user: UserModel = Depends(require_admin),
+ ):
+     return templates.TemplateResponse(
+         "question_form.html", {"request": request, "user": user}
+diff --git a/templates/base.html b/templates/base.html
+index 517ccfe43ec9cb9a8dc48f91e57b82c8af582a1e..706b4b73f3883140ffc3228f47d2717295070d5b 100644
+--- a/templates/base.html
++++ b/templates/base.html
+@@ -1,47 +1,48 @@
+ 
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1">
+     <title>Annotaria</title>
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+     <link rel="stylesheet" href="/static/css/style.css">
+ </head>
+ <body>
+ <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+     <div class="container-fluid">
+         <a class="navbar-brand" href="/ui">Annotaria</a>
+         <div class="collapse navbar-collapse">
+             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                 <li class="nav-item"><a class="nav-link" href="/ui/images">Images</a></li>
+                 {% if user and user.role == 'Amministratore' %}
+                 <li class="nav-item"><a class="nav-link" href="/ui/questions">Questions</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/answers">Answers</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/annotations">Annotations</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/image-types">Image Types</a></li>
++                <li class="nav-item"><a class="nav-link" href="/ui/expert-types">Expert Types</a></li>
+                 {% endif %}
+             </ul>
+             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                 {% if user %}
+                 <li class="nav-item">
+                     <span class="navbar-text me-2">Hello, {{ user.username }}</span>
+                 </li>
+                 <li class="nav-item">
+                     <form action="/ui/logout" method="post" class="d-inline">
+                         <button type="submit" class="btn btn-link nav-link">Logout</button>
+                     </form>
+                 </li>
+                 {% else %}
+                 <li class="nav-item"><a class="nav-link" href="/ui/login">Login</a></li>
+                 <li class="nav-item"><a class="nav-link" href="/ui/register">Register</a></li>
+                 {% endif %}
+             </ul>
+         </div>
+     </div>
+ </nav>
+ <div class="container">
+ {% block content %}{% endblock %}
+ </div>
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+ </body>
+diff --git a/templates/expert_type_form.html b/templates/expert_type_form.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8c9510d7ceb46a205582c1cc345132b3a0bdd4c
+--- /dev/null
++++ b/templates/expert_type_form.html
+@@ -0,0 +1,11 @@
++{% extends "base.html" %}
++{% block content %}
++<h1>{% if expert_type %}Edit Expert Type{% else %}New Expert Type{% endif %}</h1>
++<form method="post" action="{% if expert_type %}/ui/expert-types/{{ expert_type.id }}/edit{% else %}/ui/expert-types/create{% endif %}">
++    <div class="mb-3">
++        <label for="name" class="form-label">Name</label>
++        <input type="text" class="form-control" id="name" name="name" value="{{ expert_type.name if expert_type else '' }}" required>
++    </div>
++    <button type="submit" class="btn btn-primary">Save</button>
++</form>
++{% endblock %}
+diff --git a/templates/expert_types.html b/templates/expert_types.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..ff5a2456ad5a1ef61d4ff481e482ba34452a2700
+--- /dev/null
++++ b/templates/expert_types.html
+@@ -0,0 +1,18 @@
++{% extends "base.html" %}
++{% block content %}
++<h1>Expert Types</h1>
++<a href="/ui/expert-types/create" class="btn btn-primary mb-3">New Expert Type</a>
++<ul class="list-group">
++{% for t in types %}
++<li class="list-group-item d-flex justify-content-between">
++    {{ t.name }}
++    <span>
++        <a href="/ui/expert-types/{{ t.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
++        <form method="post" action="/ui/expert-types/{{ t.id }}/delete" class="d-inline">
++            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
++        </form>
++    </span>
++</li>
++{% endfor %}
++</ul>
++{% endblock %}
