@@ -2,7 +2,7 @@
 
 **Annotaria** è un'applicazione web in Python per la raccolta e annotazione di dati da immagini, finalizzata alla creazione di dataset strutturati per l'addestramento di reti neurali.
 
----
+______________________________________________________________________
 
 ## 📖 Panoramica
 
@@ -13,7 +13,7 @@
 - Permette annotazioni grafiche (bounding box) con **label associata**.
 - Salva risposte e annotazioni in un **database relazionale**.
 
----
+______________________________________________________________________
 
 ## 🧱 Struttura dei file di documentazione
 
@@ -22,7 +22,7 @@
 - [🧪 Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
 - [🧰 Configurazione e Ambiente](./docs/Setup.md) *(opzionale)*
 
----
+______________________________________________________________________
 
 ## 🛠️ Tecnologie utilizzate
 
@@ -33,7 +33,7 @@
 - **HTML + JavaScript (Canvas/Fabric.js)** per annotazioni grafiche
 - **Docker** (opzionale, per ambienti isolati)
 
----
+______________________________________________________________________
 
 ## ▶️ Avvio rapido
 
@@ -52,10 +52,9 @@ uvicorn main:app --reload
 
 nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>&1 &
 
-
 3. Visita: [http://localhost:8000/docs](http://localhost:8000/docs)
 
----
+______________________________________________________________________
 
 ## 📁 Struttura del progetto
 
@@ -76,7 +75,7 @@ annotaria/
     └── Setup.md
 ```
 
----
+______________________________________________________________________
 
 ## 📈 Sviluppi futuri
 
@@ -86,10 +85,10 @@ annotaria/
 - Esportazione dati per ML (CSV/JSON)
 - Container Docker (Dockerfile + docker-compose)
 
----
+______________________________________________________________________
 
 ## 📝 Licenza
 
 Progetto open source sotto licenza MIT.
 
----
+______________________________________________________________________
