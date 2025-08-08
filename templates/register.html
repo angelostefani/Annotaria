@@ -1,16 +1,67 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Register</h1>
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
-<form method="post" action="/ui/register">
-  <div class="mb-3">
-    <label for="username" class="form-label">Username</label>
-    <input type="text" class="form-control" id="username" name="username">
-  </div>
-  <div class="mb-3">
-    <label for="password" class="form-label">Password</label>
-    <input type="password" class="form-control" id="password" name="password">
-  </div>
-  <button type="submit" class="btn btn-primary">Register</button>
-</form>
+<style>
+  .register-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+    border-radius: 10px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .register-title {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #1f306e;
+    margin-bottom: 2rem;
+  }
+
+  .form-control {
+    border-radius: 10px;
+    background-color: #eaf2ff;
+    border: 1px solid #ced4da;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .form-label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0.3rem;
+  }
+
+  .btn-submit {
+    border-radius: 10px;
+    background-color: #1f306e;
+    border: none;
+    padding: 0.6rem;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    font-size: 1.1rem;
+    margin-top: 1rem;
+  }
+
+  .btn-submit:hover {
+    background-color: #2b4080;
+  }
+</style>
+
+<div class="register-container">
+  <div class="register-title">Register</div>
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+  <form method="post" action="/ui/register">
+    <div class="mb-3">
+      <label for="username" class="form-label">Username</label>
+      <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password</label>
+      <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <button type="submit" class="btn btn-submit">Register</button>
+  </form>
+</div>
 {% endblock %}
