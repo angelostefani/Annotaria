@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Image Types</h1>
+<a href="/ui/image-types/create" class="btn btn-primary mb-3">New Image Type</a>
+<ul class="list-group">
+{% for t in types %}
+<li class="list-group-item d-flex justify-content-between">
+    {{ t.name }}
+    <span>
+        <a href="/ui/image-types/{{ t.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+        <form method="post" action="/ui/image-types/{{ t.id }}/delete" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+    </span>
+</li>
+{% endfor %}
+</ul>
+{% endblock %}
