@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +25,14 @@ settings = AppSettings()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# Monta la cartella 'static' accessibile via /static
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Se usi template:
+templates = Jinja2Templates(directory="templates")
+
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -88,3 +97,4 @@ app.include_router(users.router)
 app.include_router(ui.router)
 
 app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")
+
