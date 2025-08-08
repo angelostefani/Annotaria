@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ImageTypeBase(BaseModel):
@@ -84,6 +84,7 @@ class QuestionCreate(QuestionBase):
 
 class Question(QuestionBase):
     id: int
+    image_types: list[ImageType] = Field(default_factory=list)
 
     class Config:
         orm_mode = True

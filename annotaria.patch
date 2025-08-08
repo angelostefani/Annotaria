@@ -1,52 +1,364 @@
-diff --git a/templates/base.html b/templates/base.html
-index b16281037ac7ae687c1a4b94de948243eb293724..3664bb288fdfa9660b531abb3e09788d37544b01 100644
---- a/templates/base.html
-+++ b/templates/base.html
-@@ -8,44 +8,47 @@
-     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-     <link rel="stylesheet" href="/static/css/style.css">
- </head>
- <body>
- <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-     <div class="container-fluid">
-         <a class="navbar-brand" href="/ui">Annotaria</a>
-         <div class="collapse navbar-collapse">
-             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                 <li class="nav-item"><a class="nav-link" href="/ui/images">Images</a></li>
-                 {% if user and user.role == 'Amministratore' %}
-                 <li class="nav-item"><a class="nav-link" href="/ui/questions">Questions</a></li>
-                 <li class="nav-item"><a class="nav-link" href="/ui/answers">Answers</a></li>
-                 <li class="nav-item"><a class="nav-link" href="/ui/annotations">Annotations</a></li>
-                 <li class="nav-item"><a class="nav-link" href="/ui/image-types">Image Types</a></li>
-                 <li class="nav-item"><a class="nav-link" href="/ui/expert-types">Expert Types</a></li>
-                 {% elif user and user.role == 'Esperto' %}
-                 <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">My Expert Types</a></li>
-                 {% endif %}
-             </ul>
-             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                 {% if user %}
-                 <li class="nav-item">
-                     <span class="navbar-text me-2">Hello, {{ user.username }}</span>
-                 </li>
-+                {% if user.role == 'Esperto' %}
-+                <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">Le mie tipologie</a></li>
-+                {% endif %}
-                 <li class="nav-item">
-                     <form action="/ui/logout" method="post" class="d-inline">
-                         <button type="submit" class="btn btn-link nav-link">Logout</button>
-                     </form>
-                 </li>
-                 {% else %}
-                 <li class="nav-item"><a class="nav-link" href="/ui/login">Login</a></li>
-                 <li class="nav-item"><a class="nav-link" href="/ui/register">Register</a></li>
-                 {% endif %}
-             </ul>
-         </div>
-     </div>
- </nav>
- <div class="container">
- {% block content %}{% endblock %}
- </div>
- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
- </body>
- </html>
+diff --git a/models.py b/models.py
+index a2a107d80f7557fd5c80570f74cb1b9e63bbefb5..b8931fe64d20817bb88192968130395313b29388 100644
+--- a/models.py
++++ b/models.py
+@@ -5,124 +5,147 @@ from sqlalchemy import (
+     Float,
+     Text,
+     ForeignKey,
+     DateTime,
+     Table,
+ )
+ from sqlalchemy.orm import relationship
+ from sqlalchemy.sql import func
+ 
+ from database import Base
+ 
+ 
+ user_expert_types = Table(
+     "user_expert_types",
+     Base.metadata,
+     Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+     Column(
+         "expert_type_id",
+         Integer,
+         ForeignKey("expert_types.id", ondelete="CASCADE"),
+         primary_key=True,
+     ),
+ )
+ 
+ 
++question_image_types = Table(
++    "question_image_types",
++    Base.metadata,
++    Column(
++        "question_id",
++        Integer,
++        ForeignKey("questions.id", ondelete="CASCADE"),
++        primary_key=True,
++    ),
++    Column(
++        "image_type_id",
++        Integer,
++        ForeignKey("image_types.id", ondelete="CASCADE"),
++        primary_key=True,
++    ),
++)
++
++
+ class User(Base):
+     __tablename__ = "users"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     username = Column(String, unique=True, index=True, nullable=False)
+     hashed_password = Column(String, nullable=False)
+     role = Column(String, nullable=False, default="Esperto")
+ 
+     answers = relationship("Answer", back_populates="user")
+     annotations = relationship("Annotation", back_populates="user")
+     expert_types = relationship(
+         "ExpertType", secondary=user_expert_types, back_populates="users"
+     )
+ 
+ 
+ class ExpertType(Base):
+     __tablename__ = "expert_types"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     name = Column(String, unique=True, nullable=False)
+ 
+     users = relationship("User", secondary=user_expert_types, back_populates="expert_types")
+ 
+ 
+ class ImageType(Base):
+     __tablename__ = "image_types"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     name = Column(String, unique=True, nullable=False)
+ 
+     images = relationship("Image", back_populates="image_type")
++    questions = relationship(
++        "Question", secondary=question_image_types, back_populates="image_types"
++    )
+ 
+ 
+ class Image(Base):
+     __tablename__ = "images"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     filename = Column(String, unique=True, nullable=False)
+     path = Column(String, nullable=False)
+     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+ 
+     exif_datetime = Column(String)
+     exif_gps_lat = Column(Float)
+     exif_gps_lon = Column(Float)
+     exif_gps_alt = Column(Float)
+     exif_camera_make = Column(String)
+     exif_camera_model = Column(String)
+     exif_lens_model = Column(String)
+     exif_focal_length = Column(Float)
+     exif_aperture = Column(Float)
+     exif_iso = Column(Integer)
+     exif_shutter_speed = Column(String)
+     exif_orientation = Column(String)
+     exif_image_width = Column(Integer)
+     exif_image_height = Column(Integer)
+     exif_drone_model = Column(String)
+     exif_flight_id = Column(String)
+     exif_pitch = Column(Float)
+     exif_roll = Column(Float)
+     exif_yaw = Column(Float)
+ 
+     image_type_id = Column(Integer, ForeignKey("image_types.id"))
+     image_type = relationship("ImageType", back_populates="images")
+ 
+     answers = relationship("Answer", back_populates="image")
+     annotations = relationship("Annotation", back_populates="image")
+ 
+ 
+ class Question(Base):
+     __tablename__ = "questions"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     question_text = Column(Text, nullable=False)
+-
++    image_types = relationship(
++        "ImageType", secondary=question_image_types, back_populates="questions"
++    )
+     options = relationship("Option", back_populates="question")
+     answers = relationship("Answer", back_populates="question")
+ 
+ 
+ class Option(Base):
+     __tablename__ = "options"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
+     option_text = Column(Text, nullable=False)
+ 
+     question = relationship("Question", back_populates="options")
+     answers = relationship("Answer", back_populates="selected_option")
+ 
+ 
+ class Answer(Base):
+     __tablename__ = "answers"
+ 
+     id = Column(Integer, primary_key=True, index=True)
+     image_id = Column(Integer, ForeignKey("images.id"), nullable=False)
+     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+     selected_option_id = Column(Integer, ForeignKey("options.id"), nullable=False)
+     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+     answered_at = Column(DateTime(timezone=True), server_default=func.now())
+ 
+diff --git a/routers/questions.py b/routers/questions.py
+index 5171fcdaac1fdb1b94bdb4592a9217c4d6347d9e..dc55cc02acfab2c949024cdd11e88ada53f64555 100644
+--- a/routers/questions.py
++++ b/routers/questions.py
+@@ -1,38 +1,44 @@
+ from typing import List
+ 
+ from fastapi import APIRouter, Depends, HTTPException, status
+ from sqlalchemy.orm import Session
+ 
+ from database import get_db
+-from models import Question as QuestionModel, Option as OptionModel, User as UserModel
++from models import (
++    Question as QuestionModel,
++    Option as OptionModel,
++    User as UserModel,
++    ImageType as ImageTypeModel,
++)
+ from main import get_current_user
+ from schemas import (
+     Question as QuestionSchema,
+     QuestionCreate,
+     Option as OptionSchema,
+     OptionCreate,
++    ImageType as ImageTypeSchema,
+ )
+ 
+ router = APIRouter()
+ 
+ 
+ def require_admin(current_user: UserModel = Depends(get_current_user)):
+     if current_user.role != "Amministratore":
+         raise HTTPException(status_code=403, detail="Forbidden")
+     return current_user
+ 
+ 
+ @router.post(
+     "/questions/",
+     response_model=QuestionSchema,
+     dependencies=[Depends(require_admin)],
+ )
+ def create_question(question: QuestionCreate, db: Session = Depends(get_db)):
+     db_question = QuestionModel(question_text=question.question_text)
+     db.add(db_question)
+     db.commit()
+     db.refresh(db_question)
+     return db_question
+ 
+ 
+ @router.put(
+@@ -100,25 +106,77 @@ def update_option(
+     if not db_option:
+         raise HTTPException(status_code=404, detail="Option not found")
+     db_option.option_text = option.option_text
+     db.commit()
+     db.refresh(db_option)
+     return db_option
+ 
+ 
+ @router.delete(
+     "/options/{option_id}",
+     status_code=status.HTTP_204_NO_CONTENT,
+     dependencies=[Depends(require_admin)],
+ )
+ def delete_option(option_id: int, db: Session = Depends(get_db)):
+     db_option = db.query(OptionModel).filter_by(id=option_id).first()
+     if not db_option:
+         raise HTTPException(status_code=404, detail="Option not found")
+     db.delete(db_option)
+     db.commit()
+     return None
+ 
+ 
+ @router.get("/questions/{question_id}/options", response_model=List[OptionSchema])
+ def list_options(question_id: int, db: Session = Depends(get_db)):
+     return db.query(OptionModel).filter_by(question_id=question_id).all()
++
++
++@router.post(
++    "/questions/{question_id}/image-types/{image_type_id}",
++    response_model=QuestionSchema,
++    dependencies=[Depends(require_admin)],
++)
++def add_image_type_to_question(
++    question_id: int, image_type_id: int, db: Session = Depends(get_db)
++):
++    question = db.query(QuestionModel).filter_by(id=question_id).first()
++    if not question:
++        raise HTTPException(status_code=404, detail="Question not found")
++    image_type = db.query(ImageTypeModel).filter_by(id=image_type_id).first()
++    if not image_type:
++        raise HTTPException(status_code=404, detail="Image type not found")
++    if image_type not in question.image_types:
++        question.image_types.append(image_type)
++        db.commit()
++        db.refresh(question)
++    return question
++
++
++@router.delete(
++    "/questions/{question_id}/image-types/{image_type_id}",
++    status_code=status.HTTP_204_NO_CONTENT,
++    dependencies=[Depends(require_admin)],
++)
++def remove_image_type_from_question(
++    question_id: int, image_type_id: int, db: Session = Depends(get_db)
++):
++    question = db.query(QuestionModel).filter_by(id=question_id).first()
++    if not question:
++        raise HTTPException(status_code=404, detail="Question not found")
++    image_type = db.query(ImageTypeModel).filter_by(id=image_type_id).first()
++    if not image_type:
++        raise HTTPException(status_code=404, detail="Image type not found")
++    if image_type in question.image_types:
++        question.image_types.remove(image_type)
++        db.commit()
++    return None
++
++
++@router.get(
++    "/questions/{question_id}/image-types",
++    response_model=List[ImageTypeSchema],
++)
++def list_question_image_types(question_id: int, db: Session = Depends(get_db)):
++    question = db.query(QuestionModel).filter_by(id=question_id).first()
++    if not question:
++        raise HTTPException(status_code=404, detail="Question not found")
++    return question.image_types
+diff --git a/schemas/__init__.py b/schemas/__init__.py
+index 9e8665420a6584ecd68bb00b6ef1cad4a57daca4..c542c26dfa4a38ac2f41639b0ba8b9cd00336d8a 100644
+--- a/schemas/__init__.py
++++ b/schemas/__init__.py
+@@ -1,26 +1,26 @@
+-from pydantic import BaseModel
++from pydantic import BaseModel, Field
+ 
+ 
+ class ImageTypeBase(BaseModel):
+     name: str
+ 
+ 
+ class ImageTypeCreate(ImageTypeBase):
+     pass
+ 
+ 
+ class ImageType(ImageTypeBase):
+     id: int
+ 
+     class Config:
+         orm_mode = True
+ 
+ 
+ class Image(BaseModel):
+     id: int
+     filename: str
+     path: str
+     image_type_id: int | None = None
+ 
+     class Config:
+         orm_mode = True
+@@ -62,49 +62,50 @@ class ImageUpdate(BaseModel):
+     exif_lens_model: str | None = None
+     exif_focal_length: float | None = None
+     exif_aperture: float | None = None
+     exif_iso: int | None = None
+     exif_shutter_speed: str | None = None
+     exif_orientation: str | None = None
+     exif_image_width: int | None = None
+     exif_image_height: int | None = None
+     exif_drone_model: str | None = None
+     exif_flight_id: str | None = None
+     exif_pitch: float | None = None
+     exif_roll: float | None = None
+     exif_yaw: float | None = None
+ 
+ 
+ class QuestionBase(BaseModel):
+     question_text: str
+ 
+ 
+ class QuestionCreate(QuestionBase):
+     pass
+ 
+ 
+ class Question(QuestionBase):
+     id: int
++    image_types: list[ImageType] = Field(default_factory=list)
+ 
+     class Config:
+         orm_mode = True
+ 
+ 
+ class OptionBase(BaseModel):
+     option_text: str
+ 
+ 
+ class OptionCreate(OptionBase):
+     pass
+ 
+ 
+ class Option(OptionBase):
+     id: int
+     question_id: int
+ 
+     class Config:
+         orm_mode = True
+ 
+ 
+ from .answer import Answer, AnswerCreate
+ from .annotation import Annotation, AnnotationCreate, AnnotationUpdate
+ from .expert_type import ExpertType, ExpertTypeBase, ExpertTypeCreate

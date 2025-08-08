@@ -27,6 +27,24 @@ user_expert_types = Table(
 )
 
 
+question_image_types = Table(
+    "question_image_types",
+    Base.metadata,
+    Column(
+        "question_id",
+        Integer,
+        ForeignKey("questions.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "image_type_id",
+        Integer,
+        ForeignKey("image_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -58,6 +76,9 @@ class ImageType(Base):
     name = Column(String, unique=True, nullable=False)
 
     images = relationship("Image", back_populates="image_type")
+    questions = relationship(
+        "Question", secondary=question_image_types, back_populates="image_types"
+    )
 
 
 class Image(Base):
@@ -100,7 +121,9 @@ class Question(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     question_text = Column(Text, nullable=False)
-
+    image_types = relationship(
+        "ImageType", secondary=question_image_types, back_populates="questions"
+    )
     options = relationship("Option", back_populates="question")
     answers = relationship("Answer", back_populates="question")
 
