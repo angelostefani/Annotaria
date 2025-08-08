@@ -10,13 +10,14 @@ from fastapi import (
     status,
     UploadFile,
     File,
+    Form,
     Response,
 )
 from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
 from database import get_db
-from models import Image as ImageModel, User as UserModel
+from models import Image as ImageModel, ImageType as ImageTypeModel, User as UserModel
 from schemas import Image as ImageSchema, ImageDetail, ImageUpdate
 from main import get_current_user
 
@@ -100,7 +101,7 @@ def extract_exif(path: Path):
     return data
 
 
-def register_image(path: Path, db: Session):
+def register_image(path: Path, db: Session, image_type_id: int | None = None):
     filename = path.name
     existing = db.query(ImageModel).filter_by(filename=filename).first()
     exif_data = extract_exif(path)
@@ -108,10 +109,17 @@ def register_image(path: Path, db: Session):
         for key, value in exif_data.items():
             setattr(existing, key, value)
         existing.path = str(path)
+        if image_type_id is not None:
+            existing.image_type_id = image_type_id
         db.commit()
         db.refresh(existing)
         return existing
-    db_image = ImageModel(filename=filename, path=str(path), **exif_data)
+    db_image = ImageModel(
+        filename=filename,
+        path=str(path),
+        image_type_id=image_type_id,
+        **exif_data,
+    )
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -142,15 +150,18 @@ def read_image(image_id: int, db: Session = Depends(get_db)):
 )
 async def upload_image(
     file: UploadFile = File(..., description="Immagine da caricare"),
+    image_type_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
     """Carica un'immagine, salva il file ed estrae i metadati EXIF."""
     file_path = IMAGE_DIR / file.filename
     if file_path.exists():
         raise HTTPException(status_code=400, detail="File already exists")
+    if image_type_id is not None and not db.query(ImageTypeModel).filter_by(id=image_type_id).first():
+        raise HTTPException(status_code=404, detail="Image type not found")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-    return register_image(file_path, db)
+    return register_image(file_path, db, image_type_id=image_type_id)
 
 
 @router.put(
@@ -162,7 +173,11 @@ def update_image(image_id: int, image_data: ImageUpdate, db: Session = Depends(g
     image = db.query(ImageModel).filter(ImageModel.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
-    for key, value in image_data.dict(exclude_unset=True).items():
+    data = image_data.dict(exclude_unset=True)
+    if "image_type_id" in data and data["image_type_id"] is not None:
+        if not db.query(ImageTypeModel).filter_by(id=data["image_type_id"]).first():
+            raise HTTPException(status_code=404, detail="Image type not found")
+    for key, value in data.items():
         setattr(image, key, value)
     db.commit()
     db.refresh(image)

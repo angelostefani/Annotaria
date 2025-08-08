@@ -22,6 +22,8 @@ CREATE TABLE images (
     path TEXT NOT NULL,
     uploaded_at TIMESTAMP DEFAULT NOW(),
 
+    image_type_id INTEGER REFERENCES image_types(id),
+
     exif_datetime TEXT,
     exif_gps_lat FLOAT,
     exif_gps_lon FLOAT,
@@ -44,7 +46,16 @@ CREATE TABLE images (
 );
 ```
 
-## 3. `questions`
+## 3. `image_types`
+
+```sql
+CREATE TABLE image_types (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+```
+
+## 4. `questions`
 
 ```sql
 CREATE TABLE questions (
@@ -53,7 +64,7 @@ CREATE TABLE questions (
 );
 ```
 
-## 4. `options`
+## 5. `options`
 
 ```sql
 CREATE TABLE options (
@@ -63,7 +74,7 @@ CREATE TABLE options (
 );
 ```
 
-## 5. `answers`
+## 6. `answers`
 
 ```sql
 CREATE TABLE answers (
@@ -76,7 +87,7 @@ CREATE TABLE answers (
 );
 ```
 
-## 6. `annotations`
+## 7. `annotations`
 
 ```sql
 CREATE TABLE annotations (

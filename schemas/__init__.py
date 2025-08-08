@@ -1,10 +1,26 @@
 from pydantic import BaseModel
 
 
+class ImageTypeBase(BaseModel):
+    name: str
+
+
+class ImageTypeCreate(ImageTypeBase):
+    pass
+
+
+class ImageType(ImageTypeBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
 class Image(BaseModel):
     id: int
     filename: str
     path: str
+    image_type_id: int | None = None
 
     class Config:
         orm_mode = True
@@ -30,11 +46,13 @@ class ImageDetail(Image):
     exif_pitch: float | None = None
     exif_roll: float | None = None
     exif_yaw: float | None = None
+    image_type: ImageType | None = None
 
 
 class ImageUpdate(BaseModel):
     filename: str | None = None
     path: str | None = None
+    image_type_id: int | None = None
     exif_datetime: str | None = None
     exif_gps_lat: float | None = None
     exif_gps_lon: float | None = None
