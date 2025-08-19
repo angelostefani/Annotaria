@@ -158,12 +158,21 @@ class Answer(Base):
     user = relationship("User", back_populates="answers")
 
 
+class Label(Base):
+    __tablename__ = "labels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+    annotations = relationship("Annotation", back_populates="label")
+
+
 class Annotation(Base):
     __tablename__ = "annotations"
 
     id = Column(Integer, primary_key=True, index=True)
     image_id = Column(Integer, ForeignKey("images.id"), nullable=False)
-    label = Column(String, nullable=False)
+    label_id = Column(Integer, ForeignKey("labels.id"), nullable=False)
     x = Column(Float, nullable=False)
     y = Column(Float, nullable=False)
     width = Column(Float, nullable=False)
@@ -173,3 +182,4 @@ class Annotation(Base):
 
     image = relationship("Image", back_populates="annotations")
     user = relationship("User", back_populates="annotations")
+    label = relationship("Label", back_populates="annotations")

@@ -29,6 +29,7 @@ const img = document.getElementById('image');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const existingAnnotations = {{ annotations | tojson }};
+const labels = {{ labels | tojson }};
 
 function resizeCanvas() {
   canvas.width = img.clientWidth;
@@ -72,8 +73,10 @@ canvas.addEventListener('mouseup', e => {
   drawAnnotations();
   const width = e.offsetX - startX;
   const height = e.offsetY - startY;
-  const label = prompt('Label for annotation?');
-  if (label) {
+  const labelPrompt = labels.map(l => `${l.id}: ${l.name}`).join('\n');
+  const labelId = parseInt(prompt('Label for annotation?\n' + labelPrompt));
+  const labelObj = labels.find(l => l.id === labelId);
+  if (labelObj) {
     fetch('/annotations/', {
       method: 'POST',
       headers: {
@@ -82,14 +85,14 @@ canvas.addEventListener('mouseup', e => {
       },
       body: JSON.stringify({
         image_id: imageId,
-        label: label,
+        label_id: labelId,
         x: startX,
         y: startY,
         width: width,
         height: height
       })
     }).then(() => {
-      existingAnnotations.push({label: label, x: startX, y: startY, width: width, height: height});
+      existingAnnotations.push({label: labelObj.name, x: startX, y: startY, width: width, height: height});
       drawAnnotations();
     });
   }
