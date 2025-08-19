@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Annotation as AnnotationModel, User as UserModel
+from models import Annotation as AnnotationModel, Label as LabelModel, User as UserModel
 from schemas.annotation import (
     Annotation as AnnotationSchema,
     AnnotationCreate,
@@ -21,6 +21,9 @@ def create_annotation(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ):
+    label = db.query(LabelModel).filter_by(id=annotation.label_id).first()
+    if not label:
+        raise HTTPException(status_code=404, detail="Label not found")
     db_annotation = AnnotationModel(**annotation.dict(), user_id=current_user.id)
     db.add(db_annotation)
     db.commit()
@@ -46,7 +49,12 @@ def update_annotation(annotation_id: int, annotation: AnnotationUpdate, db: Sess
     db_annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if not db_annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
-    for field, value in annotation.dict(exclude_unset=True).items():
+    update_data = annotation.dict(exclude_unset=True)
+    if "label_id" in update_data:
+        label = db.query(LabelModel).filter_by(id=update_data["label_id"]).first()
+        if not label:
+            raise HTTPException(status_code=404, detail="Label not found")
+    for field, value in update_data.items():
         setattr(db_annotation, field, value)
     db.commit()
     db.refresh(db_annotation)

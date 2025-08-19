@@ -93,12 +93,21 @@ CREATE TABLE answers (
 CREATE TABLE annotations (
     id SERIAL PRIMARY KEY,
     image_id INTEGER NOT NULL REFERENCES images(id),
-    label TEXT NOT NULL,
+    label_id INTEGER NOT NULL REFERENCES labels(id),
     x FLOAT NOT NULL,
     y FLOAT NOT NULL,
     width FLOAT NOT NULL,
     height FLOAT NOT NULL,
     user_id INTEGER NOT NULL REFERENCES users(id),
     annotated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+## 8. `labels`
+
+```sql
+CREATE TABLE labels (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
 );
 ```

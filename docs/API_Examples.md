@@ -90,7 +90,7 @@ curl -X POST http://localhost:8000/annotations/ \
   -H "Content-Type: application/json" \
   -d '{
     "image_id": 1,
-    "label": "malattia fungina",
+    "label_id": 2,
     "x": 120.5,
     "y": 88.0,
     "width": 40.0,
