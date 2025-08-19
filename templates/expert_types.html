@@ -5,7 +5,12 @@
 <ul class="list-group">
 {% for t in types %}
 <li class="list-group-item d-flex justify-content-between">
-    {{ t.name }}
+    <span>
+        {{ t.name }}
+        {% if t.image_types %}
+            - {{ t.image_types | map(attribute='name') | join(', ') }}
+        {% endif %}
+    </span>
     <span>
         <a href="/ui/expert-types/{{ t.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
         <form method="post" action="/ui/expert-types/{{ t.id }}/delete" class="d-inline">
