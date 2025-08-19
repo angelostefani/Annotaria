@@ -63,6 +63,24 @@ expert_type_image_types = Table(
 )
 
 
+label_image_types = Table(
+    "label_image_types",
+    Base.metadata,
+    Column(
+        "label_id",
+        Integer,
+        ForeignKey("labels.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "image_type_id",
+        Integer,
+        ForeignKey("image_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -102,6 +120,9 @@ class ImageType(Base):
     )
     expert_types = relationship(
         "ExpertType", secondary=expert_type_image_types, back_populates="image_types"
+    )
+    labels = relationship(
+        "Label", secondary=label_image_types, back_populates="image_types"
     )
 
 
@@ -189,6 +210,9 @@ class Label(Base):
     name = Column(String, unique=True, nullable=False)
 
     annotations = relationship("Annotation", back_populates="label")
+    image_types = relationship(
+        "ImageType", secondary=label_image_types, back_populates="labels"
+    )
 
 
 class Annotation(Base):
