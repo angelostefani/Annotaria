@@ -40,39 +40,45 @@ function resizeCanvas() {
 img.onload = resizeCanvas;
 window.onresize = resizeCanvas;
 
-let startX, startY, drawing = false;
+let currentPoints = [];
 
 function drawAnnotations() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   existingAnnotations.forEach(a => {
+    ctx.beginPath();
+    a.points.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
     ctx.strokeStyle = 'red';
-    ctx.strokeRect(a.x, a.y, a.width, a.height);
+    ctx.stroke();
+    const first = a.points[0];
     ctx.fillStyle = 'red';
-    ctx.fillText(a.label, a.x, a.y - 4);
+    ctx.fillText(a.label, first.x, first.y - 4);
   });
+  if (currentPoints.length > 0) {
+    ctx.beginPath();
+    currentPoints.forEach((p, i) => {
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.strokeStyle = 'red';
+    ctx.stroke();
+  }
 }
 
-canvas.addEventListener('mousedown', e => {
-  startX = e.offsetX;
-  startY = e.offsetY;
-  drawing = true;
+canvas.addEventListener('click', e => {
+  currentPoints.push({x: e.offsetX, y: e.offsetY});
+  drawAnnotations();
 });
 
-canvas.addEventListener('mousemove', e => {
-  if (!drawing) return;
-  const width = e.offsetX - startX;
-  const height = e.offsetY - startY;
-  drawAnnotations();
-  ctx.strokeStyle = 'red';
-  ctx.strokeRect(startX, startY, width, height);
-});
-
-canvas.addEventListener('mouseup', e => {
-  if (!drawing) return;
-  drawing = false;
-  drawAnnotations();
-  const width = e.offsetX - startX;
-  const height = e.offsetY - startY;
+canvas.addEventListener('dblclick', () => {
+  if (currentPoints.length < 3) {
+    currentPoints = [];
+    drawAnnotations();
+    return;
+  }
   const labelPrompt = labels.map(l => `${l.id}: ${l.name}`).join('\n');
   const labelId = parseInt(prompt('Label for annotation?\n' + labelPrompt));
   const labelObj = labels.find(l => l.id === labelId);
@@ -86,15 +92,16 @@ canvas.addEventListener('mouseup', e => {
       body: JSON.stringify({
         image_id: imageId,
         label_id: labelId,
-        x: startX,
-        y: startY,
-        width: width,
-        height: height
+        points: currentPoints
       })
     }).then(() => {
-      existingAnnotations.push({label: labelObj.name, x: startX, y: startY, width: width, height: height});
+      existingAnnotations.push({label: labelObj.name, points: currentPoints});
+      currentPoints = [];
       drawAnnotations();
     });
+  } else {
+    currentPoints = [];
+    drawAnnotations();
   }
 });
 

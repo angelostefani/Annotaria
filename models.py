@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     Table,
+    JSON,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -221,10 +222,7 @@ class Annotation(Base):
     id = Column(Integer, primary_key=True, index=True)
     image_id = Column(Integer, ForeignKey("images.id"), nullable=False)
     label_id = Column(Integer, ForeignKey("labels.id"), nullable=False)
-    x = Column(Float, nullable=False)
-    y = Column(Float, nullable=False)
-    width = Column(Float, nullable=False)
-    height = Column(Float, nullable=False)
+    points = Column(JSON, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     annotated_at = Column(DateTime(timezone=True), server_default=func.now())
 
