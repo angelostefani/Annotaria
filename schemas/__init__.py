@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-from pydantic import BaseModel, Field
-=======
 from typing import List
 
 from pydantic import BaseModel
->>>>>>> d0a5a29b14494ad399e60136dabf2e1db498896c
 
 
 class ImageTypeBase(BaseModel):
@@ -90,11 +86,7 @@ class QuestionCreate(QuestionBase):
 
 class Question(QuestionBase):
     id: int
-<<<<<<< HEAD
-    image_types: list[ImageType] = Field(default_factory=list)
-=======
     image_types: List[ImageType] = []
->>>>>>> d0a5a29b14494ad399e60136dabf2e1db498896c
 
     class Config:
         orm_mode = True
