@@ -454,9 +454,17 @@ def list_expert_types(
 def create_expert_type_form(
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
+    image_types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "expert_type_form.html", {"request": request, "user": user}
+        "expert_type_form.html",
+        {
+            "request": request,
+            "user": user,
+            "image_types": image_types,
+            "selected_image_type_ids": set(),
+        },
     )
 
 
@@ -466,9 +474,17 @@ def create_expert_type_form(
 )
 def create_expert_type(
     name: str = Form(...),
+    image_type_ids: list[int] = Form([]),
     db: Session = Depends(get_db),
 ):
-    expert_type = ExpertTypeModel(name=name)
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(image_type_ids))
+        .all()
+        if image_type_ids
+        else []
+    )
+    expert_type = ExpertTypeModel(name=name, image_types=image_types)
     db.add(expert_type)
     db.commit()
     return RedirectResponse(url="/ui/expert-types", status_code=303)
@@ -487,9 +503,17 @@ def edit_expert_type_form(
     expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
     if not expert_type:
         raise HTTPException(status_code=404, detail="Expert type not found")
+    image_types = db.query(ImageTypeModel).all()
+    selected_image_type_ids = {t.id for t in expert_type.image_types}
     return templates.TemplateResponse(
         "expert_type_form.html",
-        {"request": request, "expert_type": expert_type, "user": user},
+        {
+            "request": request,
+            "expert_type": expert_type,
+            "user": user,
+            "image_types": image_types,
+            "selected_image_type_ids": selected_image_type_ids,
+        },
     )
 
 
@@ -500,12 +524,21 @@ def edit_expert_type_form(
 def edit_expert_type(
     type_id: int,
     name: str = Form(...),
+    image_type_ids: list[int] = Form([]),
     db: Session = Depends(get_db),
 ):
     expert_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
     if not expert_type:
         raise HTTPException(status_code=404, detail="Expert type not found")
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(image_type_ids))
+        .all()
+        if image_type_ids
+        else []
+    )
     expert_type.name = name
+    expert_type.image_types = image_types
     db.commit()
     return RedirectResponse(url="/ui/expert-types", status_code=303)
 
