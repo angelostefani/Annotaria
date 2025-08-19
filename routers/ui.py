@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import shutil
 from typing import List
 
@@ -254,10 +255,7 @@ def view_image(
     annotations = [
         {
             "label": a.label.name,
-            "x": a.x,
-            "y": a.y,
-            "width": a.width,
-            "height": a.height,
+            "points": a.points,
         }
         for a in (
             db.query(AnnotationModel)
@@ -883,20 +881,14 @@ def create_annotation_form(
 def create_annotation(
     image_id: int = Form(...),
     label_id: int = Form(...),
-    x: float = Form(...),
-    y: float = Form(...),
-    width: float = Form(...),
-    height: float = Form(...),
+    points: str = Form(...),
     user_id: int = Form(...),
     db: Session = Depends(get_db),
 ):
     annotation = AnnotationModel(
         image_id=image_id,
         label_id=label_id,
-        x=x,
-        y=y,
-        width=width,
-        height=height,
+        points=json.loads(points),
         user_id=user_id,
     )
     db.add(annotation)
@@ -932,10 +924,7 @@ def edit_annotation(
     annotation_id: int,
     image_id: int = Form(...),
     label_id: int = Form(...),
-    x: float = Form(...),
-    y: float = Form(...),
-    width: float = Form(...),
-    height: float = Form(...),
+    points: str = Form(...),
     user_id: int = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -944,10 +933,7 @@ def edit_annotation(
         raise HTTPException(status_code=404, detail="Annotation not found")
     annotation.image_id = image_id
     annotation.label_id = label_id
-    annotation.x = x
-    annotation.y = y
-    annotation.width = width
-    annotation.height = height
+    annotation.points = json.loads(points)
     annotation.user_id = user_id
     db.commit()
     return RedirectResponse(url="/ui/annotations", status_code=303)
