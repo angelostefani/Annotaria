@@ -1,4 +1,4 @@
-# 📘 Documentazione API REST – AIRFARM
+# 📘 Documentazione API REST – Annotaria
 
 Tutte le API restituiscono e accettano dati in formato JSON.\
 Prefisso base: `http://localhost:8000/`
