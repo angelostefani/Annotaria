@@ -981,15 +981,28 @@ def list_labels(
 def create_label_form(
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
+    image_types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
-        "label_form.html", {"request": request, "user": user}
+        "label_form.html", {"request": request, "user": user, "image_types": image_types}
     )
 
 
 @router.post("/labels/create", dependencies=[Depends(require_admin)])
-def create_label(name: str = Form(...), db: Session = Depends(get_db)):
-    label = LabelModel(name=name)
+def create_label(
+    name: str = Form(...),
+    image_type_ids: List[int] = Form([]),
+    db: Session = Depends(get_db),
+):
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(image_type_ids))
+        .all()
+        if image_type_ids
+        else []
+    )
+    label = LabelModel(name=name, image_types=image_types)
     db.add(label)
     db.commit()
     return RedirectResponse(url="/ui/labels", status_code=303)
@@ -1005,9 +1018,10 @@ def edit_label_form(
     label = db.query(LabelModel).filter_by(id=label_id).first()
     if not label:
         raise HTTPException(status_code=404, detail="Label not found")
+    image_types = db.query(ImageTypeModel).all()
     return templates.TemplateResponse(
         "label_form.html",
-        {"request": request, "label": label, "user": user},
+        {"request": request, "label": label, "user": user, "image_types": image_types},
     )
 
 
@@ -1015,12 +1029,21 @@ def edit_label_form(
 def edit_label(
     label_id: int,
     name: str = Form(...),
+    image_type_ids: List[int] = Form([]),
     db: Session = Depends(get_db),
 ):
     label = db.query(LabelModel).filter_by(id=label_id).first()
     if not label:
         raise HTTPException(status_code=404, detail="Label not found")
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(image_type_ids))
+        .all()
+        if image_type_ids
+        else []
+    )
     label.name = name
+    label.image_types = image_types
     db.commit()
     return RedirectResponse(url="/ui/labels", status_code=303)
 
