@@ -336,14 +336,14 @@ Richiede autenticazione; le annotazioni vengono collegate all'utente identificat
 
 ### `POST /annotations/`
 
-Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `user_id` è gestito automaticamente.
+Salva un’annotazione su un'immagine selezionata (area rettangolare + label predefinita). `user_id` è gestito automaticamente.
 
 **Request Body**
 
 ```json
 {
   "image_id": 1,
-  "label": "foglia danneggiata",
+  "label_id": 2,
   "x": 120.5,
   "y": 80.2,
   "width": 50,
@@ -357,7 +357,8 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label). `
 {
   "id": 14,
   "image_id": 1,
-  "label": "foglia danneggiata",
+  "label_id": 2,
+  "label": {"id": 2, "name": "foglia danneggiata"},
   "x": 120.5,
   "y": 80.2,
   "width": 50,
@@ -377,7 +378,8 @@ Restituisce tutte le annotazioni dell'utente autenticato per una determinata imm
   {
     "id": 14,
     "image_id": 1,
-    "label": "foglia danneggiata",
+    "label_id": 2,
+    "label": {"id": 2, "name": "foglia danneggiata"},
     "x": 120.5,
     "y": 80.2,
     "width": 50,
@@ -395,7 +397,7 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
 
 ```json
 {
-  "label": "foglia sana",
+  "label_id": 3,
   "x": 130.0
 }
 ```
@@ -406,7 +408,8 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
 {
   "id": 14,
   "image_id": 1,
-  "label": "foglia sana",
+  "label_id": 3,
+  "label": {"id": 3, "name": "foglia sana"},
   "x": 130.0,
   "y": 80.2,
   "width": 50,

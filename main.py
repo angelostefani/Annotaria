@@ -86,7 +86,17 @@ def get_current_user(
         raise credentials_exception
     return user
 
-from routers import annotations, answers, expert_types, image_types, images, questions, users, ui
+from routers import (
+    annotations,
+    answers,
+    expert_types,
+    image_types,
+    images,
+    labels,
+    questions,
+    users,
+    ui,
+)
 from routers.images import IMAGE_DIR
 
 app.include_router(images.router)
@@ -95,6 +105,7 @@ app.include_router(expert_types.router)
 app.include_router(questions.router)
 app.include_router(answers.router)
 app.include_router(annotations.router)
+app.include_router(labels.router)
 app.include_router(users.router)
 app.include_router(ui.router)
 
