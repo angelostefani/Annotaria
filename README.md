@@ -77,6 +77,19 @@ annotaria/
 
 ______________________________________________________________________
 
+Per creare un’annotazione poligonale:
+
+Aggiunta dei vertici – ogni singolo click sul canvas aggiunge un punto alla forma in costruzione
+
+Chiusura del poligono – un doppio click chiude il poligono:
+
+se sono stati inseriti meno di tre punti, i vertici vengono scartati;
+
+altrimenti compare una finestra di dialogo che elenca le label disponibili e consente di scegliere l’etichetta da associare
+
+In pratica, continua a cliccare per aggiungere vertici e, quando hai terminato, fai un doppio click: si aprirà il prompt in cui inserire (o selezionare) la label, completando così l’annotazione.
+______________________________________________________________________
+
 ## 📈 Sviluppi futuri
 
 - Interfaccia amministrativa CRUD per immagini, domande, annotazioni
