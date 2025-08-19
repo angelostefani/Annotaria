@@ -15,20 +15,8 @@
     </select>
 </div>
 <div class="mb-3">
-    <label for="x" class="form-label">X</label>
-    <input type="number" step="any" class="form-control" id="x" name="x" value="{{ annotation.x if annotation else '' }}">
-</div>
-<div class="mb-3">
-    <label for="y" class="form-label">Y</label>
-    <input type="number" step="any" class="form-control" id="y" name="y" value="{{ annotation.y if annotation else '' }}">
-</div>
-<div class="mb-3">
-    <label for="width" class="form-label">Width</label>
-    <input type="number" step="any" class="form-control" id="width" name="width" value="{{ annotation.width if annotation else '' }}">
-</div>
-<div class="mb-3">
-    <label for="height" class="form-label">Height</label>
-    <input type="number" step="any" class="form-control" id="height" name="height" value="{{ annotation.height if annotation else '' }}">
+    <label for="points" class="form-label">Points (JSON)</label>
+    <textarea class="form-control" id="points" name="points" rows="3">{{ annotation.points | tojson if annotation else '' }}</textarea>
 </div>
 <div class="mb-3">
     <label for="user_id" class="form-label">User ID</label>

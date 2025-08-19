@@ -94,10 +94,7 @@ CREATE TABLE annotations (
     id SERIAL PRIMARY KEY,
     image_id INTEGER NOT NULL REFERENCES images(id),
     label_id INTEGER NOT NULL REFERENCES labels(id),
-    x FLOAT NOT NULL,
-    y FLOAT NOT NULL,
-    width FLOAT NOT NULL,
-    height FLOAT NOT NULL,
+    points JSON NOT NULL,
     user_id INTEGER NOT NULL REFERENCES users(id),
     annotated_at TIMESTAMP DEFAULT NOW()
 );

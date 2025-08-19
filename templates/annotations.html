@@ -3,7 +3,7 @@
 <h1>Annotations</h1>
 <table class="table table-striped" style="border: 1px solid #dee2e6; border-radius: 6px;">
 <thead>
-<tr><th>ID</th><th>Image</th><th>Label</th><th>X</th><th>Y</th><th>Width</th><th>Height</th><th>User</th><th>Actions</th></tr>
+<tr><th>ID</th><th>Image</th><th>Label</th><th>Points</th><th>User</th><th>Actions</th></tr>
 </thead>
 <tbody>
 {% for an in annotations %}
@@ -11,10 +11,7 @@
 <td>{{ an.id }}</td>
 <td>{{ an.image_id }}</td>
 <td>{{ an.label.name }}</td>
-<td>{{ an.x }}</td>
-<td>{{ an.y }}</td>
-<td>{{ an.width }}</td>
-<td>{{ an.height }}</td>
+<td>{{ an.points | tojson }}</td>
 <td>{{ an.user_id }}</td>
 <td>
 <a href="/ui/annotations/{{ an.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
