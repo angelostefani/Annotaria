@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import ExpertType as ExpertTypeModel, User as UserModel
+from models import (
+    ExpertType as ExpertTypeModel,
+    ImageType as ImageTypeModel,
+    User as UserModel,
+)
 from schemas import ExpertType as ExpertTypeSchema, ExpertTypeCreate
 from main import get_current_user
 
@@ -23,7 +27,14 @@ def require_admin(current_user: UserModel = Depends(get_current_user)):
     dependencies=[Depends(require_admin)],
 )
 def create_expert_type(expert_type: ExpertTypeCreate, db: Session = Depends(get_db)):
-    db_type = ExpertTypeModel(name=expert_type.name)
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(expert_type.image_type_ids))
+        .all()
+        if expert_type.image_type_ids
+        else []
+    )
+    db_type = ExpertTypeModel(name=expert_type.name, image_types=image_types)
     db.add(db_type)
     db.commit()
     db.refresh(db_type)
@@ -39,7 +50,15 @@ def update_expert_type(type_id: int, expert_type: ExpertTypeCreate, db: Session 
     db_type = db.query(ExpertTypeModel).filter_by(id=type_id).first()
     if not db_type:
         raise HTTPException(status_code=404, detail="Expert type not found")
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(expert_type.image_type_ids))
+        .all()
+        if expert_type.image_type_ids
+        else []
+    )
     db_type.name = expert_type.name
+    db_type.image_types = image_types
     db.commit()
     db.refresh(db_type)
     return db_type
