@@ -17,6 +17,7 @@ from models import (
     Option as OptionModel,
     Answer as AnswerModel,
     Annotation as AnnotationModel,
+    Label as LabelModel,
     User as UserModel,
 )
 from routers.images import IMAGE_DIR, register_image
@@ -252,7 +253,7 @@ def view_image(
 
     annotations = [
         {
-            "label": a.label,
+            "label": a.label.name,
             "x": a.x,
             "y": a.y,
             "width": a.width,
@@ -265,6 +266,10 @@ def view_image(
         )
     ]
 
+    # Convert Label ORM objects to plain dictionaries so they can be JSON serialized
+    label_objs = db.query(LabelModel).all()
+    labels = [{"id": l.id, "name": l.name} for l in label_objs]
+
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
         "image_detail.html",
@@ -276,6 +281,7 @@ def view_image(
             "token": token,
             "answer_map": answer_map,
             "annotations": annotations,
+            "labels": labels,
         },
     )
 
@@ -827,9 +833,11 @@ def list_annotations(
 def create_annotation_form(
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
+    labels = db.query(LabelModel).all()
     return templates.TemplateResponse(
-        "annotation_form.html", {"request": request, "user": user}
+        "annotation_form.html", {"request": request, "user": user, "labels": labels}
     )
 
 
@@ -839,7 +847,7 @@ def create_annotation_form(
 )
 def create_annotation(
     image_id: int = Form(...),
-    label: str = Form(...),
+    label_id: int = Form(...),
     x: float = Form(...),
     y: float = Form(...),
     width: float = Form(...),
@@ -849,7 +857,7 @@ def create_annotation(
 ):
     annotation = AnnotationModel(
         image_id=image_id,
-        label=label,
+        label_id=label_id,
         x=x,
         y=y,
         width=width,
@@ -874,9 +882,10 @@ def edit_annotation_form(
     annotation = db.query(AnnotationModel).filter_by(id=annotation_id).first()
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
+    labels = db.query(LabelModel).all()
     return templates.TemplateResponse(
         "annotation_form.html",
-        {"request": request, "annotation": annotation, "user": user},
+        {"request": request, "annotation": annotation, "user": user, "labels": labels},
     )
 
 
@@ -887,7 +896,7 @@ def edit_annotation_form(
 def edit_annotation(
     annotation_id: int,
     image_id: int = Form(...),
-    label: str = Form(...),
+    label_id: int = Form(...),
     x: float = Form(...),
     y: float = Form(...),
     width: float = Form(...),
@@ -899,7 +908,7 @@ def edit_annotation(
     if not annotation:
         raise HTTPException(status_code=404, detail="Annotation not found")
     annotation.image_id = image_id
-    annotation.label = label
+    annotation.label_id = label_id
     annotation.x = x
     annotation.y = y
     annotation.width = width
@@ -919,3 +928,72 @@ def delete_annotation(annotation_id: int, db: Session = Depends(get_db)):
         db.delete(annotation)
         db.commit()
     return RedirectResponse(url="/ui/annotations", status_code=303)
+
+
+@router.get("/labels", response_class=HTMLResponse)
+def list_labels(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    labels = db.query(LabelModel).all()
+    return templates.TemplateResponse(
+        "labels.html", {"request": request, "labels": labels, "user": user}
+    )
+
+
+@router.get("/labels/create", response_class=HTMLResponse)
+def create_label_form(
+    request: Request,
+    user: UserModel = Depends(require_admin),
+):
+    return templates.TemplateResponse(
+        "label_form.html", {"request": request, "user": user}
+    )
+
+
+@router.post("/labels/create", dependencies=[Depends(require_admin)])
+def create_label(name: str = Form(...), db: Session = Depends(get_db)):
+    label = LabelModel(name=name)
+    db.add(label)
+    db.commit()
+    return RedirectResponse(url="/ui/labels", status_code=303)
+
+
+@router.get("/labels/{label_id}/edit", response_class=HTMLResponse)
+def edit_label_form(
+    label_id: int,
+    request: Request,
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    label = db.query(LabelModel).filter_by(id=label_id).first()
+    if not label:
+        raise HTTPException(status_code=404, detail="Label not found")
+    return templates.TemplateResponse(
+        "label_form.html",
+        {"request": request, "label": label, "user": user},
+    )
+
+
+@router.post("/labels/{label_id}/edit", dependencies=[Depends(require_admin)])
+def edit_label(
+    label_id: int,
+    name: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    label = db.query(LabelModel).filter_by(id=label_id).first()
+    if not label:
+        raise HTTPException(status_code=404, detail="Label not found")
+    label.name = name
+    db.commit()
+    return RedirectResponse(url="/ui/labels", status_code=303)
+
+
+@router.post("/labels/{label_id}/delete", dependencies=[Depends(require_admin)])
+def delete_label(label_id: int, db: Session = Depends(get_db)):
+    label = db.query(LabelModel).filter_by(id=label_id).first()
+    if label:
+        db.delete(label)
+        db.commit()
+    return RedirectResponse(url="/ui/labels", status_code=303)

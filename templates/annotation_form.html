@@ -7,8 +7,12 @@
     <input type="number" class="form-control" id="image_id" name="image_id" value="{{ annotation.image_id if annotation else '' }}">
 </div>
 <div class="mb-3">
-    <label for="label" class="form-label">Label</label>
-    <input type="text" class="form-control" id="label" name="label" value="{{ annotation.label if annotation else '' }}">
+    <label for="label_id" class="form-label">Label</label>
+    <select class="form-control" id="label_id" name="label_id">
+        {% for l in labels %}
+        <option value="{{ l.id }}" {% if annotation and annotation.label_id == l.id %}selected{% endif %}>{{ l.name }}</option>
+        {% endfor %}
+    </select>
 </div>
 <div class="mb-3">
     <label for="x" class="form-label">X</label>
