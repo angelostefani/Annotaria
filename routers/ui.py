@@ -266,7 +266,13 @@ def view_image(
         )
     ]
 
+
+    # Convert Label ORM objects to plain dictionaries so they can be JSON serialized
+    label_objs = db.query(LabelModel).all()
+    labels = [{"id": l.id, "name": l.name} for l in label_objs]
+
     labels = db.query(LabelModel).all()
+
 
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
