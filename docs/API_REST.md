@@ -1,4 +1,4 @@
-# 📘 Documentazione API REST – AIRFARM
+# 📘 Documentazione API REST – Annotaria
 
 Tutte le API restituiscono e accettano dati in formato JSON.\
 Prefisso base: `http://localhost:8000/`
@@ -336,7 +336,7 @@ Richiede autenticazione; le annotazioni vengono collegate all'utente identificat
 
 ### `POST /annotations/`
 
-Salva un’annotazione su un'immagine selezionata (area rettangolare + label predefinita). `user_id` è gestito automaticamente.
+Salva un’annotazione su un'immagine selezionata (poligono + label predefinita). `user_id` è gestito automaticamente.
 
 **Request Body**
 
@@ -344,10 +344,11 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label pre
 {
   "image_id": 1,
   "label_id": 2,
-  "x": 120.5,
-  "y": 80.2,
-  "width": 50,
-  "height": 30
+  "points": [
+    {"x": 120.5, "y": 80.2},
+    {"x": 170.5, "y": 82.0},
+    {"x": 160.0, "y": 120.0}
+  ]
 }
 ```
 
@@ -359,10 +360,11 @@ Salva un’annotazione su un'immagine selezionata (area rettangolare + label pre
   "image_id": 1,
   "label_id": 2,
   "label": {"id": 2, "name": "foglia danneggiata"},
-  "x": 120.5,
-  "y": 80.2,
-  "width": 50,
-  "height": 30,
+  "points": [
+    {"x": 120.5, "y": 80.2},
+    {"x": 170.5, "y": 82.0},
+    {"x": 160.0, "y": 120.0}
+  ],
   "annotated_at": "2025-08-01T15:14:00"
 }
 ```
@@ -380,10 +382,11 @@ Restituisce tutte le annotazioni dell'utente autenticato per una determinata imm
     "image_id": 1,
     "label_id": 2,
     "label": {"id": 2, "name": "foglia danneggiata"},
-    "x": 120.5,
-    "y": 80.2,
-    "width": 50,
-    "height": 30,
+    "points": [
+      {"x": 120.5, "y": 80.2},
+      {"x": 170.5, "y": 82.0},
+      {"x": 160.0, "y": 120.0}
+    ],
     "annotated_at": "2025-08-01T15:14:00"
   }
 ]
@@ -398,7 +401,11 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
 ```json
 {
   "label_id": 3,
-  "x": 130.0
+  "points": [
+    {"x": 130.0, "y": 80.2},
+    {"x": 170.5, "y": 82.0},
+    {"x": 160.0, "y": 120.0}
+  ]
 }
 ```
 
@@ -410,10 +417,11 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
   "image_id": 1,
   "label_id": 3,
   "label": {"id": 3, "name": "foglia sana"},
-  "x": 130.0,
-  "y": 80.2,
-  "width": 50,
-  "height": 30,
+  "points": [
+    {"x": 130.0, "y": 80.2},
+    {"x": 170.5, "y": 82.0},
+    {"x": 160.0, "y": 120.0}
+  ],
   "annotated_at": "2025-08-01T15:14:00"
 }
 ```

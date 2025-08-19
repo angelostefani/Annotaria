@@ -5,7 +5,17 @@
 <ul class="list-group">
 {% for l in labels %}
 <li class="list-group-item d-flex justify-content-between">
-    {{ l.name }}
+    <div>
+        {{ l.name }}
+        {% if l.image_types %}
+        <div class="small text-muted">
+            Image Types:
+            {% for t in l.image_types %}
+                {{ t.name }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
     <span>
         <a href="/ui/labels/{{ l.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
         <form method="post" action="/ui/labels/{{ l.id }}/delete" class="d-inline">

@@ -12,6 +12,8 @@ ______________________________________________________________________
 - Presenta domande a **scelta multipla**, comuni a tutte le immagini.
 - Permette annotazioni grafiche (bounding box) con **label associata**.
 - Salva risposte e annotazioni in un **database relazionale**.
+- Gestisce **tipologie di immagine** e ruoli degli esperti tramite endpoint dedicati.
+- Accesso autenticato tramite token **JWT**.
 
 ______________________________________________________________________
 

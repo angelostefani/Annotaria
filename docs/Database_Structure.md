@@ -94,10 +94,7 @@ CREATE TABLE annotations (
     id SERIAL PRIMARY KEY,
     image_id INTEGER NOT NULL REFERENCES images(id),
     label_id INTEGER NOT NULL REFERENCES labels(id),
-    x FLOAT NOT NULL,
-    y FLOAT NOT NULL,
-    width FLOAT NOT NULL,
-    height FLOAT NOT NULL,
+    points JSON NOT NULL,
     user_id INTEGER NOT NULL REFERENCES users(id),
     annotated_at TIMESTAMP DEFAULT NOW()
 );
@@ -111,3 +108,53 @@ CREATE TABLE labels (
     name TEXT NOT NULL UNIQUE
 );
 ```
+
+## 9. `expert_types`
+
+```sql
+CREATE TABLE expert_types (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+```
+
+## 10. `user_expert_types`
+
+```sql
+CREATE TABLE user_expert_types (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expert_type_id INTEGER NOT NULL REFERENCES expert_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, expert_type_id)
+);
+```
+
+## 11. `question_image_types`
+
+```sql
+CREATE TABLE question_image_types (
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    image_type_id INTEGER NOT NULL REFERENCES image_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (question_id, image_type_id)
+);
+```
+
+## 12. `expert_type_image_types`
+
+```sql
+CREATE TABLE expert_type_image_types (
+    expert_type_id INTEGER NOT NULL REFERENCES expert_types(id) ON DELETE CASCADE,
+    image_type_id INTEGER NOT NULL REFERENCES image_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (expert_type_id, image_type_id)
+);
+```
+
+## 13. `label_image_types`
+
+```sql
+CREATE TABLE label_image_types (
+    label_id INTEGER NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+    image_type_id INTEGER NOT NULL REFERENCES image_types(id) ON DELETE CASCADE,
+    PRIMARY KEY (label_id, image_type_id)
+);
+```
+

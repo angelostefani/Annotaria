@@ -1,16 +1,20 @@
 from datetime import datetime
+from typing import List
+
 from pydantic import BaseModel
 
 from .label import Label
 
 
+class Point(BaseModel):
+    x: float
+    y: float
+
+
 class AnnotationBase(BaseModel):
     image_id: int
     label_id: int
-    x: float
-    y: float
-    width: float
-    height: float
+    points: List[Point]
 
 
 class AnnotationCreate(AnnotationBase):
@@ -20,10 +24,7 @@ class AnnotationCreate(AnnotationBase):
 class AnnotationUpdate(BaseModel):
     image_id: int | None = None
     label_id: int | None = None
-    x: float | None = None
-    y: float | None = None
-    width: float | None = None
-    height: float | None = None
+    points: List[Point] | None = None
 
 
 class Annotation(AnnotationBase):
@@ -34,3 +35,4 @@ class Annotation(AnnotationBase):
 
     class Config:
         orm_mode = True
+
