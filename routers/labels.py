@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Label as LabelModel, User as UserModel
+from models import (
+    ImageType as ImageTypeModel,
+    Label as LabelModel,
+    User as UserModel,
+)
 from schemas import Label as LabelSchema, LabelCreate
 from main import get_current_user
 
@@ -23,7 +27,14 @@ def require_admin(current_user: UserModel = Depends(get_current_user)):
     dependencies=[Depends(require_admin)],
 )
 def create_label(label: LabelCreate, db: Session = Depends(get_db)):
-    db_label = LabelModel(name=label.name)
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(label.image_type_ids))
+        .all()
+        if label.image_type_ids
+        else []
+    )
+    db_label = LabelModel(name=label.name, image_types=image_types)
     db.add(db_label)
     db.commit()
     db.refresh(db_label)
@@ -39,7 +50,15 @@ def update_label(label_id: int, label: LabelCreate, db: Session = Depends(get_db
     db_label = db.query(LabelModel).filter_by(id=label_id).first()
     if not db_label:
         raise HTTPException(status_code=404, detail="Label not found")
+    image_types = (
+        db.query(ImageTypeModel)
+        .filter(ImageTypeModel.id.in_(label.image_type_ids))
+        .all()
+        if label.image_type_ids
+        else []
+    )
     db_label.name = label.name
+    db_label.image_types = image_types
     db.commit()
     db.refresh(db_label)
     return db_label

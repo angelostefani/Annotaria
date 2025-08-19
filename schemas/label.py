@@ -1,4 +1,7 @@
+from typing import List
+
 from pydantic import BaseModel
+from . import ImageType
 
 
 class LabelBase(BaseModel):
@@ -6,11 +9,12 @@ class LabelBase(BaseModel):
 
 
 class LabelCreate(LabelBase):
-    pass
+    image_type_ids: List[int] = []
 
 
 class Label(LabelBase):
     id: int
+    image_types: List[ImageType] = []
 
     class Config:
         orm_mode = True
