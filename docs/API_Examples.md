@@ -16,7 +16,8 @@ curl http://localhost:8000/images
 
 ```bash
 curl -X POST http://localhost:8000/images/upload \
-  -F "file=@/percorso/della/immagine.jpg"
+  -F "file=@/percorso/della/immagine.jpg" \
+  -F "image_type_id=1"
 ```
 
 ### `GET /images/1`
@@ -113,6 +114,24 @@ curl http://localhost:8000/questions/
 
 ```bash
 curl http://localhost:8000/questions/1/options
+```
+
+______________________________________________________________________
+
+## 🏷️ Tipologie di immagine
+
+### `GET /image-types`
+
+```bash
+curl http://localhost:8000/image-types/
+```
+
+### `POST /image-types`
+
+```bash
+curl -X POST http://localhost:8000/image-types/ \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Termica"}'
 ```
 
 ______________________________________________________________________
