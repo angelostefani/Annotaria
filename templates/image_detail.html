@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ image.filename }}</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a class="btn btn-outline-secondary {% if not prev_id %}disabled{% endif %}" {% if prev_id %}href="/ui/images/{{ prev_id }}"{% else %}href="#" tabindex="-1" aria-disabled="true"{% endif %}>&laquo; Precedente</a>
+  <h1 class="m-0">{{ image.filename }}</h1>
+  <a class="btn btn-outline-secondary {% if not next_id %}disabled{% endif %}" {% if next_id %}href="/ui/images/{{ next_id }}"{% else %}href="#" tabindex="-1" aria-disabled="true"{% endif %}>Successiva &raquo;</a>
+  
+</div>
 <div id="image-wrapper" style="position:relative; display:inline-block;">
   <img id="image" src="/image_data/{{ image.filename }}" class="img-fluid" alt="{{ image.filename }}">
   <canvas id="canvas" style="position:absolute; left:0; top:0;"></canvas>
@@ -23,6 +28,15 @@
 </form>
 
 <script>
+// Keyboard navigation with arrow keys
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft' && {{ 'true' if prev_id else 'false' }}) {
+    window.location.href = '/ui/images/{{ prev_id }}';
+  } else if (e.key === 'ArrowRight' && {{ 'true' if next_id else 'false' }}) {
+    window.location.href = '/ui/images/{{ next_id }}';
+  }
+});
+
 const token = "{{ token }}";
 const imageId = {{ image.id }};
 const img = document.getElementById('image');

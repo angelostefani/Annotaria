@@ -58,6 +58,16 @@ nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>
 
 ______________________________________________________________________
 
+## 🐳 Docker
+
+- Build immagine: `docker build -t annotaria .`
+- Esecuzione (SQLite): `docker run --rm -p 8000:8000 --env-file .env -v "$PWD/image_data:/app/image_data" annotaria`
+- docker compose (PostgreSQL): `docker compose up --build`
+
+Nota: dettagli e file inclusi (`Dockerfile`, `docker-compose.yml`) in AGENTS.md, sezione “Docker & Containers”.
+
+______________________________________________________________________
+
 ## 📁 Struttura del progetto
 
 ```
@@ -77,6 +87,19 @@ annotaria/
     └── Setup.md
 ```
 
+______________________________________________________________________
+
+Per creare un’annotazione poligonale:
+
+Aggiunta dei vertici – ogni singolo click sul canvas aggiunge un punto alla forma in costruzione
+
+Chiusura del poligono – un doppio click chiude il poligono:
+
+se sono stati inseriti meno di tre punti, i vertici vengono scartati;
+
+altrimenti compare una finestra di dialogo che elenca le label disponibili e consente di scegliere l’etichetta da associare
+
+In pratica, continua a cliccare per aggiungere vertici e, quando hai terminato, fai un doppio click: si aprirà il prompt in cui inserire (o selezionare) la label, completando così l’annotazione.
 ______________________________________________________________________
 
 ## 📈 Sviluppi futuri

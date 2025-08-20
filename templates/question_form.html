@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/forms.html" import image_type_multiselect %}
 {% block content %}
 <h1>{% if question %}Edit Question{% else %}New Question{% endif %}</h1>
 <form method="post"
@@ -7,14 +8,7 @@
       <label for="question_text" class="form-label">Question Text</label>
       <input type="text" id="question_text" name="question_text" class="form-control" value="{{ question.question_text if question else '' }}">
   </div>
-  <div class="mb-3">
-      <label for="image_type_ids" class="form-label">Image Types</label>
-      <select id="image_type_ids" name="image_type_ids" class="form-select" multiple>
-      {% for t in image_types %}
-          <option value="{{ t.id }}" {% if question and t in question.image_types %}selected{% endif %}>{{ t.name }}</option>
-      {% endfor %}
-      </select>
-  </div>
+  {{ image_type_multiselect(image_types, (question.image_types | map(attribute='id') | list) if question else [], 'image_type_ids') }}
   <button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}

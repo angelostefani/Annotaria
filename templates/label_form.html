@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/forms.html" import image_type_multiselect %}
 {% block content %}
 <h1>{% if label %}Edit Label{% else %}New Label{% endif %}</h1>
 <form method="post" action="{% if label %}/ui/labels/{{ label.id }}/edit{% else %}/ui/labels/create{% endif %}">
@@ -6,14 +7,7 @@
         <label for="name" class="form-label">Name</label>
         <input type="text" class="form-control" id="name" name="name" value="{{ label.name if label else '' }}" required>
     </div>
-    <div class="mb-3">
-        <label for="image_type_ids" class="form-label">Image Types</label>
-        <select id="image_type_ids" name="image_type_ids" class="form-select" multiple>
-            {% for t in image_types %}
-            <option value="{{ t.id }}" {% if label and t in label.image_types %}selected{% endif %}>{{ t.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
+    {{ image_type_multiselect(image_types, (label.image_types | map(attribute='id') | list) if label else [], 'image_type_ids') }}
     <button type="submit" class="btn btn-primary">Save</button>
 </form>
 {% endblock %}

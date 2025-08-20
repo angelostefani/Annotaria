@@ -236,6 +236,21 @@ def view_image(
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    # Determine previous and next image IDs for navigation
+    prev_row = (
+        db.query(ImageModel.id)
+        .filter(ImageModel.id < image_id)
+        .order_by(ImageModel.id.desc())
+        .first()
+    )
+    next_row = (
+        db.query(ImageModel.id)
+        .filter(ImageModel.id > image_id)
+        .order_by(ImageModel.id.asc())
+        .first()
+    )
+    prev_id = prev_row[0] if prev_row else None
+    next_id = next_row[0] if next_row else None
     questions_query = db.query(QuestionModel)
     if image.image_type_id:
         questions_query = questions_query.join(QuestionModel.image_types).filter(
@@ -282,6 +297,8 @@ def view_image(
             "answer_map": answer_map,
             "annotations": annotations,
             "labels": labels,
+            "prev_id": prev_id,
+            "next_id": next_id,
         },
     )
 
