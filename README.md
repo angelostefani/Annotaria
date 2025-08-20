@@ -58,6 +58,16 @@ nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>
 
 ______________________________________________________________________
 
+## 🐳 Docker
+
+- Build immagine: `docker build -t annotaria .`
+- Esecuzione (SQLite): `docker run --rm -p 8000:8000 --env-file .env -v "$PWD/image_data:/app/image_data" annotaria`
+- docker compose (PostgreSQL): `docker compose up --build`
+
+Nota: dettagli e file inclusi (`Dockerfile`, `docker-compose.yml`) in AGENTS.md, sezione “Docker & Containers”.
+
+______________________________________________________________________
+
 ## 📁 Struttura del progetto
 
 ```
