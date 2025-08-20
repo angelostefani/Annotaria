@@ -6,12 +6,11 @@
 {% for l in labels %}
 <li class="list-group-item d-flex justify-content-between">
     <div>
-        {{ l.name }}
+        <div class="fw-semibold">{{ l.name }}</div>
         {% if l.image_types %}
-        <div class="small text-muted">
-            Image Types:
+        <div class="mt-1">
             {% for t in l.image_types %}
-                {{ t.name }}{% if not loop.last %}, {% endif %}
+            <span class="badge bg-secondary me-1 mb-1">{{ t.name }}</span>
             {% endfor %}
         </div>
         {% endif %}
