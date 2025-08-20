@@ -1,0 +1,48 @@
+{% macro image_type_multiselect(image_types, selected_ids=[], field_name='image_type_ids') %}
+  <div class="mb-2">
+    <label class="form-label">Selected Image Types</label>
+    <div id="{{ field_name }}-badges"></div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Image Types</label>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
+    {% for t in image_types %}
+      <div class="col">
+        <div class="form-check">
+          <input class="form-check-input image-type-checkbox" type="checkbox" name="{{ field_name }}" id="{{ field_name }}-{{ t.id }}" value="{{ t.id }}" data-name="{{ t.name }}" {% if t.id in selected_ids %}checked{% endif %}>
+          <label class="form-check-label" for="{{ field_name }}-{{ t.id }}">{{ t.name }}</label>
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+  </div>
+  <script>
+  (function(){
+    const fieldName = "{{ field_name }}";
+    const badgesId = fieldName + "-badges";
+    function renderSelectedBadges() {
+      const container = document.getElementById(badgesId);
+      if (!container) return;
+      const checked = Array.from(document.querySelectorAll('input.image-type-checkbox[name="'+fieldName+'"]:checked'));
+      container.innerHTML = '';
+      if (checked.length === 0) {
+        container.innerHTML = '<span class="text-muted">None</span>';
+        return;
+      }
+      checked.forEach(cb => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary me-1 mb-1';
+        badge.textContent = cb.getAttribute('data-name');
+        container.appendChild(badge);
+      });
+    }
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.matches('input.image-type-checkbox[name="'+fieldName+'"]')) {
+        renderSelectedBadges();
+      }
+    });
+    document.addEventListener('DOMContentLoaded', renderSelectedBadges);
+  })();
+  </script>
+{% endmacro %}
+
