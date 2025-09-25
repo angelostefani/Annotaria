@@ -1,28 +1,15 @@
 services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: annotaria
-      POSTGRES_USER: annotaria
-      POSTGRES_PASSWORD: annotaria
-    volumes:
-      - db_data:/var/lib/postgresql/data
-
   app:
     build: .
-    depends_on:
-      - db
     environment:
-      DATABASE_URL: postgresql://annotaria:annotaria@db:5432/annotaria
+      DATABASE_URL: sqlite:///./annotaria.db
       IMAGE_DIR: /app/image_data
       SECRET_KEY: change-me
       ALLOWED_ORIGINS: "*"
     volumes:
       - ./image_data:/app/image_data
+      - ./annotaria.db:/app/annotaria.db
     ports:
       - "8000:8000"
     command: uvicorn main:app --host 0.0.0.0 --port 8000
     restart: unless-stopped
-
-volumes:
-  db_data: {}
