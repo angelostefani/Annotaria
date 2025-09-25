@@ -21,7 +21,7 @@ from models import (
     Label as LabelModel,
     User as UserModel,
 )
-from routers.images import IMAGE_DIR, register_image
+from routers.images import IMAGE_DIR, register_image, perform_bulk_import
 from main import (
     create_access_token,
     get_password_hash,
@@ -204,9 +204,18 @@ def upload_image_form(
     db: Session = Depends(get_db),
 ):
     types = db.query(ImageTypeModel).all()
-    return templates.TemplateResponse(
-        "image_form.html", {"request": request, "user": user, "image_types": types}
-    )
+    context = {
+        "request": request,
+        "user": user,
+        "image_types": types,
+        "image_dir_root": str(IMAGE_DIR.resolve()),
+        "import_result": None,
+        "import_error": None,
+        "directory_value": "",
+        "selected_image_type": None,
+        "recursive_flag": False,
+    }
+    return templates.TemplateResponse("image_form.html", context)
 
 
 @router.post(
@@ -226,6 +235,42 @@ async def upload_image(
     return RedirectResponse(url="/ui/images", status_code=303)
 
 
+
+
+@router.post("/images/import")
+def bulk_import_images(
+    request: Request,
+    directory: str = Form(...),
+    image_type_id: int = Form(...),
+    recursive: bool = Form(False),
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    types = db.query(ImageTypeModel).all()
+    context = {
+        "request": request,
+        "user": user,
+        "image_types": types,
+        "image_dir_root": str(IMAGE_DIR.resolve()),
+        "directory_value": directory,
+        "selected_image_type": image_type_id,
+        "recursive_flag": recursive,
+    }
+    try:
+        result = perform_bulk_import(
+            directory=directory,
+            image_type_id=image_type_id,
+            recursive=recursive,
+            db=db,
+        )
+        context.update({"import_result": result, "import_error": None})
+        status_code = 200
+    except HTTPException as exc:
+        context.update({"import_result": None, "import_error": exc.detail})
+        status_code = exc.status_code
+    return templates.TemplateResponse("image_form.html", context, status_code=status_code)
+
+
 @router.get("/images/{image_id}", response_class=HTMLResponse)
 def view_image(
     image_id: int,
@@ -236,6 +281,11 @@ def view_image(
     image = db.query(ImageModel).filter_by(id=image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    try:
+        relative_path = Path(image.path).resolve().relative_to(IMAGE_DIR.resolve())
+        image_url = f"/image_data/{relative_path.as_posix()}"
+    except Exception:
+        image_url = f"/image_data/{image.filename}"
     # Determine previous and next image IDs for navigation
     prev_row = (
         db.query(ImageModel.id)
@@ -291,6 +341,7 @@ def view_image(
         {
             "request": request,
             "image": image,
+            "image_url": image_url,
             "questions": questions,
             "user": user,
             "token": token,
@@ -1058,3 +1109,4 @@ def delete_label(label_id: int, db: Session = Depends(get_db)):
         db.delete(label)
         db.commit()
     return RedirectResponse(url="/ui/labels", status_code=303)
+

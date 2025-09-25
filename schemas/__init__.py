@@ -76,6 +76,27 @@ class ImageUpdate(BaseModel):
     exif_yaw: float | None = None
 
 
+class ImageBulkImportRequest(BaseModel):
+    directory: str
+    image_type_id: int
+    recursive: bool = False
+
+
+class ImageBulkImportError(BaseModel):
+    path: str
+    error: str
+
+
+class ImageBulkImportResult(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    errors: List[ImageBulkImportError] = []
+
+    class Config:
+        orm_mode = True
+
+
 class QuestionBase(BaseModel):
     question_text: str
 
