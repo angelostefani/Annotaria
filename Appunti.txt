@@ -1,0 +1,5 @@
+"Nella pagina di upload immagini, aggiungere una nuova funzionalità di acquisizione immagini "massiva".
+La nuova funzionalità deve consentire di selezionare una cartella del file system e di
+associare una categoria immagine (Image Type) alla cartella selezionata.
+Quando l'utente preme OK, l'applicazione legge le immagini contenute nella cartella selezionata, e senza 
+spostarle né copiarle, inserisce i dati delle immagini nel database, categorizzando le immagini con la image type selezionata.
