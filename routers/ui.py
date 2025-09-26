@@ -21,7 +21,7 @@ from models import (
     Label as LabelModel,
     User as UserModel,
 )
-from routers.images import IMAGE_DIR, register_image, perform_bulk_import
+from routers.images import IMAGE_DIR, register_image, perform_bulk_import, filter_images_for_user
 from main import (
     create_access_token,
     get_password_hash,
@@ -92,7 +92,8 @@ def list_images(
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    images = db.query(ImageModel).options(joinedload(ImageModel.image_type)).all()
+    query = db.query(ImageModel).options(joinedload(ImageModel.image_type))
+    images = filter_images_for_user(query, user).all()
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
         "images.html", {"request": request, "images": images, "user": user, "token": token}

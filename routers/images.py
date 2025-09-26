@@ -13,6 +13,7 @@ from fastapi import (
     Form,
     Response,
 )
+from sqlalchemy import false
 from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
@@ -27,6 +28,21 @@ IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "./image_data"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".tif", ".tiff", ".png", ".raw", ".nef", ".cr2", ".arw"}
+
+
+def filter_images_for_user(query, user: UserModel | None):
+    """Limit a SQLAlchemy query to images visible to the given user."""
+    if user is None or user.role == "Amministratore":
+        return query
+    allowed_type_ids = {
+        image_type.id
+        for expert_type in user.expert_types
+        for image_type in expert_type.image_types
+        if image_type.id is not None
+    }
+    if not allowed_type_ids:
+        return query.filter(false())
+    return query.filter(ImageModel.image_type_id.in_(allowed_type_ids))
 
 
 def _ratio_to_float(value):
@@ -227,11 +243,15 @@ def import_images_from_directory(
     return result
 
 @router.get("/images", response_model=List[ImageSchema])
-def read_images(db: Session = Depends(get_db)):
+def read_images(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    return db.query(ImageModel).all()
+    query = filter_images_for_user(db.query(ImageModel), current_user)
+    return query.all()
 
 
 @router.get("/images/{image_id}", response_model=ImageDetail)
