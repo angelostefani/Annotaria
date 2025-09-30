@@ -1,5 +1,0 @@
-"Nella pagina di visualizzazione immagine, le domande devono essere mostrate all'utente una alla volta.
-L'utente risponde a una domanda e gli viene mostrata la domanda successiva.
-Deve essere possibile andare avanti e indietro tra le domande."
-Analizza questa richiesta e dimmi cosa andrai a modificare.
-Attendi il mio OK per apportare le modifiche.
