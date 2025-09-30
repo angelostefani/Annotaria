@@ -170,10 +170,25 @@ class Question(Base):
     image_types = relationship(
         "ImageType", secondary=question_image_types, back_populates="questions"
     )
-    options = relationship("Option", back_populates="question")
+    options = relationship("Option", back_populates="question", foreign_keys="Option.question_id")
     answers = relationship("Answer", back_populates="question")
-    image_types = relationship(
-        "ImageType", secondary=question_image_types, back_populates="questions"
+    depends_on_question_id = Column(
+        Integer, ForeignKey("questions.id", ondelete="SET NULL"), nullable=True
+    )
+    depends_on_option_id = Column(
+        Integer, ForeignKey("options.id", ondelete="SET NULL"), nullable=True
+    )
+
+    depends_on_question = relationship(
+        "Question",
+        remote_side=[id],
+        backref="follow_up_questions",
+        foreign_keys=[depends_on_question_id],
+    )
+    depends_on_option = relationship(
+        "Option",
+        back_populates="follow_up_questions",
+        foreign_keys=[depends_on_option_id],
     )
 
 
@@ -184,9 +199,17 @@ class Option(Base):
     question_id = Column(Integer, ForeignKey("questions.id", ondelete="CASCADE"), nullable=False)
     option_text = Column(Text, nullable=False)
 
-    question = relationship("Question", back_populates="options")
+    question = relationship("Question", back_populates="options", foreign_keys=[question_id])
     answers = relationship("Answer", back_populates="selected_option")
+    follow_up_questions = relationship(
+        "Question",
+        back_populates="depends_on_option",
+        foreign_keys=[Question.depends_on_option_id],
+    )
 
+    @property
+    def follow_up_question_ids(self):
+        return [q.id for q in self.follow_up_questions]
 
 class Answer(Base):
     __tablename__ = "answers"

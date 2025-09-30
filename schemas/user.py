@@ -17,6 +17,12 @@ class UserLogin(BaseModel):
     password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    new_password_confirm: str
+
+
 class UserResponse(UserBase):
     id: int
     expert_types: list[ExpertType] = []

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User as UserModel
-from schemas.user import UserCreate, UserResponse, Token
+from schemas.user import UserCreate, UserResponse, Token, PasswordChangeRequest
 from main import (
     get_password_hash,
     verify_password,
@@ -43,3 +43,26 @@ def login_for_access_token(
 @router.get("/users/me", response_model=UserResponse)
 def read_users_me(current_user: UserModel = Depends(get_current_user)):
     return current_user
+
+@router.post("/users/me/password")
+def change_password(
+    payload: PasswordChangeRequest,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+    if payload.new_password != payload.new_password_confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if verify_password(payload.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="New password must be different from the current password")
+
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return {"detail": "Password updated"}
+
+

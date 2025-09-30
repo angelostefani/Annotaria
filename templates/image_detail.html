@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+  <div id="save-toast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="save-toast-body">Risposte salvate</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Chiudi"></button>
+    </div>
+  </div>
+</div>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <a class="btn btn-outline-secondary {% if not prev_id %}disabled{% endif %}" {% if prev_id %}href="/ui/images/{{ prev_id }}"{% else %}href="#" tabindex="-1" aria-disabled="true"{% endif %}>&laquo; Precedente</a>
   <div class="flex-grow-1 px-3 text-center">
@@ -138,52 +146,173 @@ const prevQuestionBtn = document.getElementById('prev-question-btn');
 const nextQuestionBtn = document.getElementById('next-question-btn');
 const progressTextEl = document.getElementById('question-progress');
 const submitAnswersBtn = document.getElementById('submit-answers-btn');
+const toastElement = document.getElementById('save-toast');
+const toastBody = document.getElementById('save-toast-body');
+let saveToastInstance = null;
+const questionMap = new Map();
+const dependentsByOption = new Map();
+const dependentsByQuestion = new Map();
+const baseQuestionIds = [];
+let activeQuestionIds = [];
 let currentQuestionIndex = 0;
 
-function initializeQuestionnaire() {
+questionsData.forEach((question, index) => {
+  const orderValue = typeof question.order === 'number' ? question.order : index;
+  question.order = orderValue;
+  questionMap.set(question.id, question);
+  if (question.depends_on_option_id && question.depends_on_question_id) {
+    if (!dependentsByOption.has(question.depends_on_option_id)) {
+      dependentsByOption.set(question.depends_on_option_id, []);
+    }
+    dependentsByOption.get(question.depends_on_option_id).push(question.id);
+
+    if (!dependentsByQuestion.has(question.depends_on_question_id)) {
+      dependentsByQuestion.set(question.depends_on_question_id, []);
+    }
+    dependentsByQuestion.get(question.depends_on_question_id).push(question.id);
+  } else {
+    baseQuestionIds.push(question.id);
+  }
+});
+
+const sortByOrder = (a, b) => {
+  const orderA = questionMap.get(a)?.order ?? 0;
+  const orderB = questionMap.get(b)?.order ?? 0;
+  return orderA - orderB;
+};
+
+for (const list of dependentsByOption.values()) {
+  list.sort(sortByOrder);
+}
+for (const list of dependentsByQuestion.values()) {
+  list.sort(sortByOrder);
+}
+baseQuestionIds.sort(sortByOrder);
+
+function computeActiveQuestionIds() {
+  const sequence = [];
+  const visited = new Set();
+
+  const addQuestionWithDependents = questionId => {
+    if (visited.has(questionId)) {
+      return;
+    }
+    const question = questionMap.get(questionId);
+    if (!question) {
+      return;
+    }
+    if (question.depends_on_option_id && question.depends_on_question_id) {
+      const parentAnswer = answersCache[question.depends_on_question_id];
+      if (parentAnswer !== question.depends_on_option_id) {
+        return;
+      }
+    }
+    visited.add(questionId);
+    sequence.push(questionId);
+
+    const selectedOptionId = answersCache[questionId];
+    if (selectedOptionId != null) {
+      const dependents = dependentsByOption.get(selectedOptionId) || [];
+      dependents.forEach(addQuestionWithDependents);
+    }
+  };
+
+  baseQuestionIds.forEach(addQuestionWithDependents);
+  return sequence;
+}
+
+function clearDependentAnswers(questionId) {
+  const queue = [...(dependentsByQuestion.get(questionId) || [])];
+  const visited = new Set(queue);
+  while (queue.length) {
+    const dependentId = queue.shift();
+    if (Object.prototype.hasOwnProperty.call(answersCache, dependentId)) {
+      delete answersCache[dependentId];
+    }
+    const nested = dependentsByQuestion.get(dependentId) || [];
+    nested.forEach(childId => {
+      if (!visited.has(childId)) {
+        visited.add(childId);
+        queue.push(childId);
+      }
+    });
+  }
+}
+
+function pruneInactiveAnswers() {
+  const activeSet = new Set(computeActiveQuestionIds());
+  Object.keys(answersCache).forEach(key => {
+    const questionId = Number(key);
+    if (!Number.isFinite(questionId) || !activeSet.has(questionId)) {
+      delete answersCache[questionId];
+    }
+  });
+}
+
+function showToast(message, isError = false) {
+  if (!toastElement) {
+    console.warn('Toast element not found');
+    return;
+  }
+  if (!saveToastInstance) {
+    saveToastInstance = bootstrap.Toast.getOrCreateInstance(toastElement, {
+      autohide: true,
+      delay: 2500
+    });
+  }
+  if (toastBody) {
+    toastBody.textContent = message;
+  }
+  toastElement.classList.toggle('text-bg-danger', Boolean(isError));
+  toastElement.classList.toggle('text-bg-success', !isError);
+  saveToastInstance.show();
+}
+
+function recomputeActiveQuestions(preserveCurrentId = true) {
+  const previousId = preserveCurrentId ? activeQuestionIds[currentQuestionIndex] : undefined;
+  activeQuestionIds = computeActiveQuestionIds();
+  if (activeQuestionIds.length === 0) {
+    currentQuestionIndex = 0;
+    return undefined;
+  }
+  if (preserveCurrentId && previousId != null) {
+    const idx = activeQuestionIds.indexOf(previousId);
+    if (idx !== -1) {
+      currentQuestionIndex = idx;
+      return activeQuestionIds[currentQuestionIndex];
+    }
+  }
+  if (currentQuestionIndex >= activeQuestionIds.length) {
+    currentQuestionIndex = activeQuestionIds.length - 1;
+  }
+  if (currentQuestionIndex < 0) {
+    currentQuestionIndex = 0;
+  }
+  return activeQuestionIds[currentQuestionIndex];
+}
+
+function renderQuestion(preserveCurrentId = true) {
+  const currentQuestionId = recomputeActiveQuestions(preserveCurrentId);
   if (!answersForm || !noQuestionsMessage || !questionTextEl || !optionsContainer || !prevQuestionBtn || !nextQuestionBtn || !progressTextEl || !submitAnswersBtn) {
     return;
   }
-  if (questionsData.length === 0) {
+  if (activeQuestionIds.length === 0) {
     noQuestionsMessage.classList.remove('d-none');
     answersForm.classList.add('d-none');
+    progressTextEl.textContent = '';
+    optionsContainer.innerHTML = '';
+    updateNavigationState();
     return;
   }
   noQuestionsMessage.classList.add('d-none');
   answersForm.classList.remove('d-none');
 
-  prevQuestionBtn.addEventListener('click', () => {
-    if (currentQuestionIndex > 0) {
-      goToQuestion(currentQuestionIndex - 1);
-    }
-  });
-
-  nextQuestionBtn.addEventListener('click', () => {
-    if (currentQuestionIndex === questionsData.length - 1) {
-      answersForm.requestSubmit();
-    } else {
-      goToQuestion(currentQuestionIndex + 1);
-    }
-  });
-
-  renderQuestion();
-}
-
-function goToQuestion(index) {
-  if (index < 0 || index >= questionsData.length) {
-    return;
-  }
-  currentQuestionIndex = index;
-  renderQuestion();
-}
-
-function renderQuestion() {
-  const question = questionsData[currentQuestionIndex];
+  const question = questionMap.get(currentQuestionId);
   if (!question) {
     return;
   }
+  progressTextEl.textContent = `Domanda ${currentQuestionIndex + 1} di ${activeQuestionIds.length}`;
   questionTextEl.textContent = question.text;
-  progressTextEl.textContent = `Domanda ${currentQuestionIndex + 1} di ${questionsData.length}`;
   optionsContainer.innerHTML = '';
   question.options.forEach(opt => {
     const wrapper = document.createElement('div');
@@ -198,12 +327,17 @@ function renderQuestion() {
       input.checked = true;
     }
     input.addEventListener('change', () => {
-      answersCache[question.id] = opt.id;
-      if (currentQuestionIndex < questionsData.length - 1) {
-        goToQuestion(currentQuestionIndex + 1);
+      const previousAnswer = answersCache[question.id];
+      if (previousAnswer !== opt.id) {
+        answersCache[question.id] = opt.id;
+        if (previousAnswer !== undefined) {
+          clearDependentAnswers(question.id);
+        }
       } else {
-        updateNavigationState();
+        answersCache[question.id] = opt.id;
       }
+      renderQuestion();
+      goToNextQuestion();
     });
     const labelEl = document.createElement('label');
     labelEl.className = 'form-check-label';
@@ -216,35 +350,81 @@ function renderQuestion() {
   updateNavigationState();
 }
 
+function goToNextQuestion() {
+  if (currentQuestionIndex < activeQuestionIds.length - 1) {
+    currentQuestionIndex += 1;
+    renderQuestion(false);
+  } else {
+    updateNavigationState();
+  }
+}
+
+function goToPreviousQuestion() {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex -= 1;
+    renderQuestion(false);
+  }
+}
+
 function updateNavigationState() {
+  const hasQuestions = activeQuestionIds.length > 0;
   const isFirst = currentQuestionIndex === 0;
-  const isLast = currentQuestionIndex === questionsData.length - 1;
-  prevQuestionBtn.disabled = isFirst;
+  const isLast = hasQuestions && currentQuestionIndex === activeQuestionIds.length - 1;
+  prevQuestionBtn.disabled = !hasQuestions || isFirst;
   nextQuestionBtn.textContent = isLast ? 'Completa' : 'Successiva';
   nextQuestionBtn.classList.toggle('btn-success', isLast);
   nextQuestionBtn.classList.toggle('btn-primary', !isLast);
-  const currentQuestionId = questionsData[currentQuestionIndex]?.id;
-  const hasAnswer =
-    currentQuestionId != null && Object.prototype.hasOwnProperty.call(answersCache, currentQuestionId);
-  nextQuestionBtn.disabled = !hasAnswer;
-  const missingAnswers = questionsData.some(
-    q => !Object.prototype.hasOwnProperty.call(answersCache, q.id)
+  const currentQuestionId = hasQuestions ? activeQuestionIds[currentQuestionIndex] : undefined;
+  const hasAnswer = currentQuestionId != null && Object.prototype.hasOwnProperty.call(answersCache, currentQuestionId);
+  nextQuestionBtn.disabled = !hasQuestions || !hasAnswer;
+  const missingAnswers = activeQuestionIds.some(
+    questionId => !Object.prototype.hasOwnProperty.call(answersCache, questionId)
   );
-  submitAnswersBtn.disabled = missingAnswers;
+  submitAnswersBtn.disabled = !hasQuestions || missingAnswers;
+}
+
+function initializeQuestionnaire() {
+  if (!answersForm || !noQuestionsMessage || !questionTextEl || !optionsContainer || !prevQuestionBtn || !nextQuestionBtn || !progressTextEl || !submitAnswersBtn) {
+    return;
+  }
+  if (questionsData.length === 0) {
+    noQuestionsMessage.classList.remove('d-none');
+    answersForm.classList.add('d-none');
+    return;
+  }
+  pruneInactiveAnswers();
+  prevQuestionBtn.addEventListener('click', () => {
+    goToPreviousQuestion();
+  });
+  nextQuestionBtn.addEventListener('click', () => {
+    if (activeQuestionIds.length === 0) {
+      return;
+    }
+    if (currentQuestionIndex === activeQuestionIds.length - 1) {
+      answersForm.requestSubmit();
+    } else {
+      currentQuestionIndex += 1;
+      renderQuestion(false);
+    }
+  });
+  renderQuestion();
 }
 
 initializeQuestionnaire();
 
 answersForm?.addEventListener('submit', async e => {
   e.preventDefault();
-  if (questionsData.length === 0) {
+  pruneInactiveAnswers();
+  recomputeActiveQuestions();
+  if (activeQuestionIds.length === 0) {
+    showToast('Non sono presenti domande da salvare.', true);
     return;
   }
-  const missingAnswers = questionsData.some(
-    q => !Object.prototype.hasOwnProperty.call(answersCache, q.id)
+  const missingAnswers = activeQuestionIds.some(
+    questionId => !Object.prototype.hasOwnProperty.call(answersCache, questionId)
   );
   if (missingAnswers) {
-    alert('Rispondi a tutte le domande prima di salvare.');
+    showToast('Rispondi a tutte le domande prima di salvare.', true);
     return;
   }
   const headers = {
@@ -254,14 +434,18 @@ answersForm?.addEventListener('submit', async e => {
     headers['Authorization'] = `Bearer ${token}`;
   }
   try {
-    await Promise.all(questionsData.map(question => {
-      const selectedOptionId = answersCache[question.id];
+    await Promise.all(activeQuestionIds.map(questionId => {
+      const question = questionMap.get(questionId);
+      if (!question) {
+        return Promise.resolve();
+      }
+      const selectedOptionId = answersCache[questionId];
       return fetch('/answers/', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           image_id: imageId,
-          question_id: question.id,
+          question_id: questionId,
           selected_option_id: selectedOptionId
         })
       }).then(response => {
@@ -270,11 +454,17 @@ answersForm?.addEventListener('submit', async e => {
         }
       });
     }));
-    alert('Risposte salvate');
+    showToast('Risposte salvate');
   } catch (error) {
     console.error(error);
-    alert('Si è verificato un errore durante il salvataggio delle risposte.');
+    showToast('Si e verificato un errore durante il salvataggio delle risposte.', true);
+  } finally {
+    renderQuestion();
   }
 });
 </script>
 {% endblock %}
+
+
+
+

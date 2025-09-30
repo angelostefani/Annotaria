@@ -108,6 +108,8 @@ class QuestionCreate(QuestionBase):
 class Question(QuestionBase):
     id: int
     image_types: List[ImageType] = []
+    depends_on_question_id: int | None = None
+    depends_on_option_id: int | None = None
 
     class Config:
         orm_mode = True
@@ -118,12 +120,13 @@ class OptionBase(BaseModel):
 
 
 class OptionCreate(OptionBase):
-    pass
+    follow_up_question_ids: List[int] = []
 
 
 class Option(OptionBase):
     id: int
     question_id: int
+    follow_up_question_ids: List[int] = []
 
     class Config:
         orm_mode = True
