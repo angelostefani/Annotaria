@@ -279,7 +279,12 @@ def view_image(
     user: UserModel = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    image = db.query(ImageModel).filter_by(id=image_id).first()
+    image = (
+        db.query(ImageModel)
+        .options(joinedload(ImageModel.image_type))
+        .filter_by(id=image_id)
+        .first()
+    )
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     try:

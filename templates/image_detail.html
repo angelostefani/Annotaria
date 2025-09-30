@@ -2,9 +2,13 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <a class="btn btn-outline-secondary {% if not prev_id %}disabled{% endif %}" {% if prev_id %}href="/ui/images/{{ prev_id }}"{% else %}href="#" tabindex="-1" aria-disabled="true"{% endif %}>&laquo; Precedente</a>
-  <h1 class="m-0">{{ image.filename }}</h1>
+  <div class="flex-grow-1 px-3 text-center">
+    <h1 class="m-0">{{ image.filename }}</h1>
+    <span class="badge {% if image.image_type %}bg-info text-dark{% else %}bg-light text-muted{% endif %} mt-2">
+      {% if image.image_type %}Tipo: {{ image.image_type.name }}{% else %}Tipo non assegnato{% endif %}
+    </span>
+  </div>
   <a class="btn btn-outline-secondary {% if not next_id %}disabled{% endif %}" {% if next_id %}href="/ui/images/{{ next_id }}"{% else %}href="#" tabindex="-1" aria-disabled="true"{% endif %}>Successiva &raquo;</a>
-  
 </div>
 <div id="image-wrapper" style="position:relative; display:inline-block;">
   <img id="image" src="{{ image_url }}" class="img-fluid" alt="{{ image.filename }}">
