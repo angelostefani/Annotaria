@@ -11,21 +11,26 @@
   <canvas id="canvas" style="position:absolute; left:0; top:0;"></canvas>
 </div>
 
-<h2 class="mt-4">Questions</h2>
-<form id="answers-form">
-  {% for q in questions %}
-  <div class="mb-3">
-    <p>{{ q.question_text }}</p>
-    {% for opt in q.options %}
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="q{{ q.id }}" id="opt{{ opt.id }}" value="{{ opt.id }}" {% if answer_map.get(q.id) == opt.id %}checked{% endif %}>
-      <label class="form-check-label" for="opt{{ opt.id }}">{{ opt.option_text }}</label>
+<h2 class="mt-4">Domande</h2>
+<div id="questionnaire">
+  <p id="no-questions-message" class="text-muted mb-0">Nessuna domanda disponibile per questa immagine.</p>
+  <form id="answers-form" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span id="question-progress" class="fw-semibold"></span>
+      <div>
+        <button type="button" class="btn btn-outline-secondary me-2" id="prev-question-btn">Domanda precedente</button>
+        <button type="button" class="btn btn-primary" id="next-question-btn">Domanda successiva</button>
+      </div>
     </div>
-    {% endfor %}
-  </div>
-  {% endfor %}
-  <button type="submit" class="btn btn-primary">Submit Answers</button>
-</form>
+    <div id="question-body">
+      <p id="question-text" class="h5"></p>
+      <div id="question-options"></div>
+    </div>
+    <div class="mt-4 d-flex justify-content-end">
+      <button type="submit" class="btn btn-success" id="submit-answers-btn">Salva risposte</button>
+    </div>
+  </form>
+</div>
 
 <script>
 // Keyboard navigation with arrow keys
@@ -44,6 +49,8 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const existingAnnotations = {{ annotations | tojson }};
 const labels = {{ labels | tojson }};
+const questionsData = {{ questions_data | tojson }};
+const answersCache = {{ answer_map | tojson }};
 
 function resizeCanvas() {
   canvas.width = img.clientWidth;
@@ -120,26 +127,150 @@ canvas.addEventListener('dblclick', () => {
 });
 
 const answersForm = document.getElementById('answers-form');
-answersForm.addEventListener('submit', e => {
-  e.preventDefault();
-  const data = new FormData(answersForm);
-  for (const [key, value] of data.entries()) {
-    const qId = parseInt(key.substring(1));
-    const optionId = parseInt(value);
-    fetch('/answers/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        image_id: imageId,
-        question_id: qId,
-        selected_option_id: optionId
-      })
-    });
+const noQuestionsMessage = document.getElementById('no-questions-message');
+const questionTextEl = document.getElementById('question-text');
+const optionsContainer = document.getElementById('question-options');
+const prevQuestionBtn = document.getElementById('prev-question-btn');
+const nextQuestionBtn = document.getElementById('next-question-btn');
+const progressTextEl = document.getElementById('question-progress');
+const submitAnswersBtn = document.getElementById('submit-answers-btn');
+let currentQuestionIndex = 0;
+
+function initializeQuestionnaire() {
+  if (!answersForm || !noQuestionsMessage || !questionTextEl || !optionsContainer || !prevQuestionBtn || !nextQuestionBtn || !progressTextEl || !submitAnswersBtn) {
+    return;
   }
-  alert('Answers submitted');
+  if (questionsData.length === 0) {
+    noQuestionsMessage.classList.remove('d-none');
+    answersForm.classList.add('d-none');
+    return;
+  }
+  noQuestionsMessage.classList.add('d-none');
+  answersForm.classList.remove('d-none');
+
+  prevQuestionBtn.addEventListener('click', () => {
+    if (currentQuestionIndex > 0) {
+      goToQuestion(currentQuestionIndex - 1);
+    }
+  });
+
+  nextQuestionBtn.addEventListener('click', () => {
+    if (currentQuestionIndex === questionsData.length - 1) {
+      answersForm.requestSubmit();
+    } else {
+      goToQuestion(currentQuestionIndex + 1);
+    }
+  });
+
+  renderQuestion();
+}
+
+function goToQuestion(index) {
+  if (index < 0 || index >= questionsData.length) {
+    return;
+  }
+  currentQuestionIndex = index;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const question = questionsData[currentQuestionIndex];
+  if (!question) {
+    return;
+  }
+  questionTextEl.textContent = question.text;
+  progressTextEl.textContent = `Domanda ${currentQuestionIndex + 1} di ${questionsData.length}`;
+  optionsContainer.innerHTML = '';
+  question.options.forEach(opt => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'form-check';
+    const input = document.createElement('input');
+    input.className = 'form-check-input';
+    input.type = 'radio';
+    input.name = `q${question.id}`;
+    input.id = `opt${question.id}_${opt.id}`;
+    input.value = opt.id;
+    if (answersCache[question.id] === opt.id) {
+      input.checked = true;
+    }
+    input.addEventListener('change', () => {
+      answersCache[question.id] = opt.id;
+      if (currentQuestionIndex < questionsData.length - 1) {
+        goToQuestion(currentQuestionIndex + 1);
+      } else {
+        updateNavigationState();
+      }
+    });
+    const labelEl = document.createElement('label');
+    labelEl.className = 'form-check-label';
+    labelEl.setAttribute('for', input.id);
+    labelEl.textContent = opt.text;
+    wrapper.appendChild(input);
+    wrapper.appendChild(labelEl);
+    optionsContainer.appendChild(wrapper);
+  });
+  updateNavigationState();
+}
+
+function updateNavigationState() {
+  const isFirst = currentQuestionIndex === 0;
+  const isLast = currentQuestionIndex === questionsData.length - 1;
+  prevQuestionBtn.disabled = isFirst;
+  nextQuestionBtn.textContent = isLast ? 'Completa' : 'Successiva';
+  nextQuestionBtn.classList.toggle('btn-success', isLast);
+  nextQuestionBtn.classList.toggle('btn-primary', !isLast);
+  const currentQuestionId = questionsData[currentQuestionIndex]?.id;
+  const hasAnswer =
+    currentQuestionId != null && Object.prototype.hasOwnProperty.call(answersCache, currentQuestionId);
+  nextQuestionBtn.disabled = !hasAnswer;
+  const missingAnswers = questionsData.some(
+    q => !Object.prototype.hasOwnProperty.call(answersCache, q.id)
+  );
+  submitAnswersBtn.disabled = missingAnswers;
+}
+
+initializeQuestionnaire();
+
+answersForm?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (questionsData.length === 0) {
+    return;
+  }
+  const missingAnswers = questionsData.some(
+    q => !Object.prototype.hasOwnProperty.call(answersCache, q.id)
+  );
+  if (missingAnswers) {
+    alert('Rispondi a tutte le domande prima di salvare.');
+    return;
+  }
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  try {
+    await Promise.all(questionsData.map(question => {
+      const selectedOptionId = answersCache[question.id];
+      return fetch('/answers/', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          image_id: imageId,
+          question_id: question.id,
+          selected_option_id: selectedOptionId
+        })
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Impossibile salvare la risposta');
+        }
+      });
+    }));
+    alert('Risposte salvate');
+  } catch (error) {
+    console.error(error);
+    alert('Si è verificato un errore durante il salvataggio delle risposte.');
+  }
 });
 </script>
 {% endblock %}

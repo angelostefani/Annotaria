@@ -302,14 +302,19 @@ def view_image(
     )
     prev_id = prev_row[0] if prev_row else None
     next_id = next_row[0] if next_row else None
-    questions_query = db.query(QuestionModel)
+    questions_query = db.query(QuestionModel).options(joinedload(QuestionModel.options))
     if image.image_type_id:
         questions_query = questions_query.join(QuestionModel.image_types).filter(
             ImageTypeModel.id == image.image_type_id
         )
     questions = questions_query.all()
-    for q in questions:
-        _ = q.options
+    questions_payload = [
+        {"id": q.id, "text": q.question_text, "options": [
+            {"id": opt.id, "text": opt.option_text}
+            for opt in q.options
+        ]}
+        for q in questions
+    ]
 
     answers = (
         db.query(AnswerModel)
@@ -344,6 +349,7 @@ def view_image(
             "image": image,
             "image_url": image_url,
             "questions": questions,
+            "questions_data": questions_payload,
             "user": user,
             "token": token,
             "answer_map": answer_map,
