@@ -1,5 +1,6 @@
 from datetime import datetime
-from pydantic import BaseModel
+
+from pydantic import BaseModel, ConfigDict
 
 
 class AnswerBase(BaseModel):
@@ -17,5 +18,4 @@ class Answer(AnswerBase):
     user_id: int
     answered_at: datetime | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

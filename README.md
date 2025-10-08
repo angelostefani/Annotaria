@@ -42,7 +42,7 @@ ______________________________________________________________________
 1. Crea un file `.env`:
 
 ```dotenv
-DATABASE_URL=postgresql://user:password@localhost:5432/annotaria
+DATABASE_URL=sqlite:///./annotaria.db
 IMAGE_DIR=./image_data
 ```
 

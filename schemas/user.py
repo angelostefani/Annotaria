@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .expert_type import ExpertType
 
@@ -27,8 +27,7 @@ class UserResponse(UserBase):
     id: int
     expert_types: list[ExpertType] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):

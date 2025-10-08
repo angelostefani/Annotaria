@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ImageTypeBase(BaseModel):
@@ -14,8 +14,7 @@ class ImageTypeCreate(ImageTypeBase):
 class ImageType(ImageTypeBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Image(BaseModel):
@@ -24,8 +23,7 @@ class Image(BaseModel):
     path: str
     image_type_id: int | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ImageDetail(Image):
@@ -93,8 +91,7 @@ class ImageBulkImportResult(BaseModel):
     skipped: int
     errors: List[ImageBulkImportError] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class QuestionBase(BaseModel):
@@ -111,8 +108,7 @@ class Question(QuestionBase):
     depends_on_question_id: int | None = None
     depends_on_option_id: int | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OptionBase(BaseModel):
@@ -128,8 +124,7 @@ class Option(OptionBase):
     question_id: int
     follow_up_question_ids: List[int] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 from .answer import Answer, AnswerCreate

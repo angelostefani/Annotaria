@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from .label import Label
 
@@ -33,6 +33,5 @@ class Annotation(AnnotationBase):
     annotated_at: datetime | None = None
     label: Label
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
