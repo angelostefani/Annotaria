@@ -1,53 +1,49 @@
-# ⚙️ Setup del Progetto Annotaria
+# Setup del Progetto Annotaria
 
 ______________________________________________________________________
 
 ## Prerequisiti
 
-- Python >= 3.10
-- PostgreSQL (o SQLite)
+- Python >= 3.12
 - pip
-- (Opzionale) Docker e docker-compose
+- PostgreSQL (o SQLite)
+- Docker e Docker Compose (opzionali, consigliati per il deploy)
 
 ______________________________________________________________________
 
-## 📁 Struttura directory suggerita
-
-```
-annotaria/
-├── .env
-├── image_data/
-├── main.py
-├── database.py
-├── models.py
-├── static/
-├── templates/
-├── schemas/
-└── docs/
-```
-
-______________________________________________________________________
-
-## 🔧 Configurazione
-
-Crea un file `.env` con:
-
-```dotenv
-DATABASE_URL=postgresql://utente:password@localhost:5432/annotaria
-IMAGE_DIR=./image_data
-```
-
-______________________________________________________________________
-
-## 🚀 Avvio
-
-1. Crea le tabelle (automaticamente alla partenza)
-1. Avvia il server:
+## Installazione e Avvio con Docker
 
 ```bash
-uvicorn main:app --reload
+docker compose build --no-cache
+docker compose up -d
 ```
 
-3. Documentazione API:
+______________________________________________________________________
 
-[http://localhost:8000/docs](http://localhost:8000/docs)
+## Installazione e Avvio con Ambiente Virtuale (venv)
+
+1. Posizionati nella cartella del progetto.
+2. Crea l'ambiente virtuale:
+   - Linux/macOS: `python3.12 -m venv venv`
+   - Windows: `python -m venv venv`
+3. Attiva l'ambiente virtuale:
+   - Linux/macOS: `source venv/bin/activate`
+   - Windows: `venv\Scripts\activate`
+4. Installa le dipendenze: `pip install -r requirements.txt`
+5. Avvia il server FastAPI scegliendo una porta libera:
+   - Avvio semplice: `uvicorn main:app --host 0.0.0.0 --port 9100`
+   - Avvio in background (Linux/macOS):<br>`nohup uvicorn main:app --host 0.0.0.0 --port 9100 > annotaria.log 2>&1 &`
+
+______________________________________________________________________
+
+## Credenziali Predefinite
+
+- Utente amministratore preconfigurato: `admin` / `changeme` (cambiare la password al primo accesso).
+- Gli utenti creati tramite interfaccia avranno ruolo **Esperto**.
+
+______________________________________________________________________
+
+## Risorse Utili
+
+- Documentazione API: [http://localhost:9100/docs](http://localhost:9100/docs)
+- Interfaccia Web: [http://localhost:9100/ui](http://localhost:9100/ui)

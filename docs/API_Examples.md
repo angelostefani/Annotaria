@@ -9,13 +9,13 @@ ______________________________________________________________________
 ### `GET /images`
 
 ```bash
-curl http://localhost:8000/images
+curl http://localhost:9100/images
 ```
 
 ### `POST /images/upload`
 
 ```bash
-curl -X POST http://localhost:8000/images/upload \
+curl -X POST http://localhost:9100/images/upload \
   -F "file=@/percorso/della/immagine.jpg" \
   -F "image_type_id=1"
 ```
@@ -23,13 +23,13 @@ curl -X POST http://localhost:8000/images/upload \
 ### `GET /images/1`
 
 ```bash
-curl http://localhost:8000/images/1
+curl http://localhost:9100/images/1
 ```
 
 ### `PUT /images/1`
 
 ```bash
-curl -X PUT http://localhost:8000/images/1 \
+curl -X PUT http://localhost:9100/images/1 \
   -H "Content-Type: application/json" \
   -d '{"filename": "nuovo.jpg"}'
 ```
@@ -37,7 +37,7 @@ curl -X PUT http://localhost:8000/images/1 \
 ### `DELETE /images/1`
 
 ```bash
-curl -X DELETE http://localhost:8000/images/1
+curl -X DELETE http://localhost:9100/images/1
 ```
 
 ______________________________________________________________________
@@ -47,7 +47,7 @@ ______________________________________________________________________
 ### `POST /questions/`
 
 ```bash
-curl -X POST http://localhost:8000/questions/ \
+curl -X POST http://localhost:9100/questions/ \
   -H "Content-Type: application/json" \
   -d '{"question_text": "Qual è la condizione del raccolto?"}'
 ```
@@ -59,7 +59,7 @@ ______________________________________________________________________
 ### `POST /questions/1/options`
 
 ```bash
-curl -X POST http://localhost:8000/questions/1/options \
+curl -X POST http://localhost:9100/questions/1/options \
   -H "Content-Type: application/json" \
   -d '{"option_text": "Secco"}'
 ```
@@ -71,7 +71,7 @@ ______________________________________________________________________
 ### `POST /answers/`
 
 ```bash
-curl -X POST http://localhost:8000/answers/ \
+curl -X POST http://localhost:9100/answers/ \
   -H "Content-Type: application/json" \
   -d '{
     "image_id": 1,
@@ -87,7 +87,7 @@ ______________________________________________________________________
 ### `POST /annotations/`
 
 ```bash
-curl -X POST http://localhost:8000/annotations/ \
+curl -X POST http://localhost:9100/annotations/ \
   -H "Content-Type: application/json" \
   -d '{
     "image_id": 1,
@@ -107,13 +107,13 @@ ______________________________________________________________________
 ### `GET /questions/`
 
 ```bash
-curl http://localhost:8000/questions/
+curl http://localhost:9100/questions/
 ```
 
 ### `GET /questions/1/options`
 
 ```bash
-curl http://localhost:8000/questions/1/options
+curl http://localhost:9100/questions/1/options
 ```
 
 ______________________________________________________________________
@@ -123,13 +123,13 @@ ______________________________________________________________________
 ### `GET /image-types`
 
 ```bash
-curl http://localhost:8000/image-types/
+curl http://localhost:9100/image-types/
 ```
 
 ### `POST /image-types`
 
 ```bash
-curl -X POST http://localhost:8000/image-types/ \
+curl -X POST http://localhost:9100/image-types/ \
   -H "Content-Type: application/json" \
   -d '{"name": "Termica"}'
 ```
@@ -137,4 +137,4 @@ curl -X POST http://localhost:8000/image-types/ \
 ______________________________________________________________________
 
 > 🔧 Tutte le richieste usano `Content-Type: application/json`.
-> Assicurati che l'API sia in esecuzione su `localhost:8000`.
+> Assicurati che l'API sia in esecuzione su `localhost:9100`.

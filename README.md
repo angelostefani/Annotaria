@@ -1,113 +1,96 @@
 # Annotaria
 
-**Annotaria** è un'applicazione web in Python per la raccolta e annotazione di dati da immagini, finalizzata alla creazione di dataset strutturati per l'addestramento di reti neurali.
+Annotaria è un'applicazione web per la raccolta e l'annotazione di dati da immagini, pensata per generare dataset strutturati utili all'addestramento di modelli di machine learning.
 
 ______________________________________________________________________
 
-## 📖 Panoramica
+## Panoramica
 
-- Supporta immagini **JPG, TIFF, RAW**, anche da **droni**.
-- Estrae e salva automaticamente i **metadati EXIF**.
-- Visualizza immagini da una **directory configurabile**.
-- Presenta domande a **scelta multipla**, comuni a tutte le immagini.
-- Permette annotazioni grafiche (bounding box) con **label associata**.
-- Salva risposte e annotazioni in un **database relazionale**.
-- Gestisce **tipologie di immagine** e ruoli degli esperti tramite endpoint dedicati.
+- Supporto a immagini **JPG, TIFF, RAW**, anche provenienti da droni.
+- Estrazione e salvataggio automatico dei metadati **EXIF**.
+- Visualizzazione immagini da una cartella configurabile.
+- Questionari a scelta multipla condivisi tra tutte le immagini.
+- Annotazioni grafiche con bounding box e label associata.
+- Persistenza di risposte e annotazioni su database relazionale.
+- Gestione tipologie di immagine e ruoli degli esperti tramite endpoint dedicati.
 - Accesso autenticato tramite token **JWT**.
 
 ______________________________________________________________________
 
-## 🧱 Struttura dei file di documentazione
+## Documentazione
 
-- [📂 API REST](./docs/API_REST.md)
-- [🗃️ Struttura del Database](./docs/Database_Structure.md)
-- [🧪 Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
-- [🧰 Configurazione e Ambiente](./docs/Setup.md) *(opzionale)*
+- [API REST](./docs/API_REST.md)
+- [Struttura del Database](./docs/Database_Structure.md)
+- [Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
+- [Setup e Configurazione](./docs/Setup.md)
 
 ______________________________________________________________________
 
-## 🛠️ Tecnologie utilizzate
+## Tecnologie
 
-- **Python 3.10+**
-- **FastAPI** per le API REST
-- **SQLAlchemy** (ORM)
+- **Python 3.12**
+- **FastAPI**
+- **SQLAlchemy**
 - **PostgreSQL** o **SQLite**
-- **HTML + JavaScript (Canvas/Fabric.js)** per annotazioni grafiche
-- **Docker** (opzionale, per ambienti isolati)
+- **HTML + JavaScript (Canvas/Fabric.js)**
+- **Docker** (opzionale, consigliato in produzione)
 
 ______________________________________________________________________
 
-## ▶️ Avvio rapido
+## Installazione e Avvio
 
-1. Crea un file `.env`:
+### Docker
 
-```dotenv
-DATABASE_URL=sqlite:///./annotaria.db
-IMAGE_DIR=./image_data
+```bash installazione
+docker compose build --no-cache
+```
+```bash avvio
+docker compose up -d
 ```
 
-2. Avvia l'applicazione:
+### Ambiente Virtuale (venv)
 
-```bash
-uvicorn main:app --reload
-```
-
-nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>&1 &
-
-3. Visita: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-______________________________________________________________________
-
-## 🐳 Docker
-
-- Build immagine: `docker build -t annotaria .`
-- Esecuzione (SQLite): `docker run --rm -p 8000:8000 --env-file .env -v "$PWD/image_data:/app/image_data" annotaria`
-- docker compose (PostgreSQL): `docker compose up --build`
-
-Nota: dettagli e file inclusi (`Dockerfile`, `docker-compose.yml`) in AGENTS.md, sezione “Docker & Containers”.
+1. Posizionati nella cartella del progetto.
+2. Crea l'ambiente virtuale:
+   - Linux/macOS: `python3.12 -m venv venv`
+   - Windows: `python -m venv venv`
+3. Attiva l'ambiente virtuale:
+   - Linux/macOS: `source venv/bin/activate`
+   - Windows: `venv\Scripts\activate`
+4. Installa le dipendenze: `pip install -r requirements.txt`
+5. Avvia il server FastAPI scegliendo una porta libera:
+   - Avvio semplice: `uvicorn main:app --host 0.0.0.0 --port 9100`
+   - Avvio in background (Linux/macOS): `nohup uvicorn main:app --host 0.0.0.0 --port 9100 > annotaria.log 2>&1 &`
 
 ______________________________________________________________________
 
-## 📁 Struttura del progetto
+## Credenziali Predefinite
+
+- Utente amministratore disponibile al primo avvio: `admin` / `admin`. Cambiare la password dopo l'accesso.
+- Gli utenti creati tramite interfaccia vengono assegnati al ruolo **Esperto**.
+
+______________________________________________________________________
+
+## Struttura del Progetto
 
 ```
 annotaria/
-│
 ├── main.py                  # Entrypoint FastAPI
 ├── database.py              # Configurazione SQLAlchemy
 ├── models.py                # Definizione modelli database
-├── schemas/                 # Modelli Pydantic per le API
-├── static/                  # JS e CSS
-├── templates/               # Template HTML (opzionale)
-├── image_data/              # Cartella immagini configurabile
-├── data/questions.json      # Dataset domande iniziali
-└── docs/                    # Documentazione Markdown
-    ├── API_REST.md
-    ├── Database_Structure.md
-    └── Setup.md
+├── routers/                 # Router FastAPI
+├── schemas/                 # Modelli Pydantic
+├── static/                  # Asset JS/CSS
+├── templates/               # Template HTML
+├── image_data/              # Archivio immagini configurabile
+├── docs/                    # Documentazione aggiuntiva
+└── .env                     # Configurazione ambiente
 ```
 
 ______________________________________________________________________
 
-Per creare un’annotazione poligonale:
+## Licenza
 
-Aggiunta dei vertici – ogni singolo click sul canvas aggiunge un punto alla forma in costruzione.
-
-Chiusura del poligono – un doppio click chiude il poligono:
-se sono stati inseriti meno di tre punti, i vertici vengono scartati;
-altrimenti compare una finestra di dialogo che elenca le label disponibili e consente di scegliere l’etichetta da associare.
-In pratica, continua a cliccare per aggiungere vertici e, quando hai terminato, fai un doppio click: si aprirà il prompt in cui inserire (o selezionare) la label, completando così l’annotazione.
-______________________________________________________________________
-
-## 📈 Sviluppi futuri
-
-- Interfaccia amministrativa CRUD per immagini, domande, annotazioni
-- Interfaccia Streamlit o frontend React
-- Esportazione dati per ML (CSV/JSON)
-______________________________________________________________________
-
-## 📝 Licenza
-
-Progetto open source sotto licenza MIT.
+Progetto open source distribuito sotto licenza MIT.
 
 ______________________________________________________________________

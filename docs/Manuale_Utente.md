@@ -6,7 +6,7 @@ Questo manuale guida passo passo gli utilizzatori di Annotaria nella gestione de
 ## 2. Requisiti e accesso
 - **Browser supportati**: versioni recenti di Chrome, Edge o Firefox con JavaScript attivo.
 - **Avvio dell applicazione**: da terminale, posizionarsi nella cartella del progetto ed eseguire `uvicorn main:app --reload` (oppure il comando di deploy indicato nel README).
-- **URL predefinito**: interfaccia utente su `http://localhost:8000/ui`, documentazione REST su `http://localhost:8000/docs`.
+- **URL predefinito**: interfaccia utente su `http://localhost:9100/ui`, documentazione REST su `http://localhost:9100/docs`.
 - **Credenziali**: la registrazione via `/ui/register` crea utenti con ruolo `Esperto`. La promozione a `Amministratore` richiede la modifica del campo `role` nella tabella `users` (via SQL o interfacce di amministrazione del database).
 
 ## 3. Ruoli e permessi
@@ -153,4 +153,3 @@ La pagina di dettaglio contiene:
 
 ### C. Contatti e supporto
 - In caso di malfunzionamenti applicativi raccogliere il file di log (`uvicorn.log` se si usa il comando di avvio suggerito nel README) e condividerlo.
-
