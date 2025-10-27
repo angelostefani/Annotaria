@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -45,7 +46,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "secret")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -111,3 +112,8 @@ app.include_router(ui.router)
 
 app.mount("/image_data", StaticFiles(directory=str(IMAGE_DIR)), name="image_data")
 
+
+@app.get("/", include_in_schema=False)
+def redirect_root_to_ui() -> RedirectResponse:
+    """Normalize root requests by redirecting to the UI entry point."""
+    return RedirectResponse(url="/ui", status_code=303)
