@@ -4,6 +4,75 @@ body {
     background-color: #f8f9fa;
 }
 
+.navbar-annotaria {
+    background: linear-gradient(135deg, #1f306e 0%, #3949ab 60%, #5c6bc0 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.navbar-annotaria .navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.navbar-annotaria .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.05rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.navbar-annotaria .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    margin: 0 0.35rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+}
+
+.navbar-annotaria .nav-link:hover,
+.navbar-annotaria .nav-link:focus {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.navbar-annotaria .nav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(15, 25, 53, 0.35);
+}
+
+.navbar-annotaria .user-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.navbar-annotaria .btn-outline-light {
+    border-radius: 999px;
+    border-color: rgba(255, 255, 255, 0.55);
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.navbar-annotaria .btn-outline-light:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
 h1, h2, h3 {
     color: #1f306e;
     margin-bottom: 1.5rem;

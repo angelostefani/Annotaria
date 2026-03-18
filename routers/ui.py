@@ -21,7 +21,7 @@ from models import (
     Label as LabelModel,
     User as UserModel,
 )
-from routers.images import IMAGE_DIR, register_image
+from routers.images import IMAGE_DIR, register_image, perform_bulk_import, filter_images_for_user
 from main import (
     create_access_token,
     get_password_hash,
@@ -33,6 +33,39 @@ from main import (
 templates = Jinja2Templates(directory="templates")
 
 router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
+
+
+
+def _update_option_follow_ups(db: Session, option: OptionModel, follow_up_question_ids: List[int]) -> None:
+    """Assign or clear follow-up questions for the given option in the UI flows."""
+    valid_ids = {
+        int(qid) if isinstance(qid, str) and qid.isdigit() else qid
+        for qid in follow_up_question_ids
+        if (isinstance(qid, int) or (isinstance(qid, str) and qid.isdigit()))
+    }
+    valid_ids.discard(option.question_id)
+
+    current_questions = (
+        db.query(QuestionModel)
+        .filter(QuestionModel.depends_on_option_id == option.id)
+        .all()
+    )
+    current_ids = {question.id for question in current_questions}
+
+    ids_to_clear = current_ids - valid_ids
+    if ids_to_clear:
+        for question in db.query(QuestionModel).filter(QuestionModel.id.in_(ids_to_clear)):
+            question.depends_on_question_id = None
+            question.depends_on_option_id = None
+
+    if valid_ids:
+        for question in db.query(QuestionModel).filter(QuestionModel.id.in_(valid_ids)):
+            if question.id == option.question_id:
+                continue
+            question.depends_on_question_id = option.question_id
+            question.depends_on_option_id = option.id
+
+    db.flush()
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -92,7 +125,8 @@ def list_images(
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    images = db.query(ImageModel).options(joinedload(ImageModel.image_type)).all()
+    query = db.query(ImageModel).options(joinedload(ImageModel.image_type))
+    images = filter_images_for_user(query, user).all()
     token = request.cookies.get("access_token")
     return templates.TemplateResponse(
         "images.html", {"request": request, "images": images, "user": user, "token": token}
@@ -150,6 +184,58 @@ def login_user(
     return response
 
 
+
+
+@router.get("/change-password", response_class=HTMLResponse)
+def change_password_form(
+    request: Request,
+    user: UserModel = Depends(require_user),
+):
+    context = {
+        "request": request,
+        "user": user,
+        "error": None,
+        "success": None,
+    }
+    return templates.TemplateResponse("change_password.html", context)
+
+
+@router.post("/change-password", response_class=HTMLResponse)
+def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    user: UserModel = Depends(require_user),
+    db: Session = Depends(get_db),
+):
+    error: str | None = None
+    success: str | None = None
+
+    if not verify_password(current_password, user.hashed_password):
+        error = "La password corrente non e corretta."
+    elif new_password != confirm_password:
+        error = "La nuova password e la conferma non coincidono."
+    elif len(new_password) < 8:
+        error = "La nuova password deve contenere almeno 8 caratteri."
+    elif verify_password(new_password, user.hashed_password):
+        error = "La nuova password deve essere diversa da quella attuale."
+    else:
+        user.hashed_password = get_password_hash(new_password)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        success = "Password aggiornata con successo."
+
+    context = {
+        "request": request,
+        "user": user,
+        "error": error,
+        "success": success,
+    }
+    return templates.TemplateResponse("change_password.html", context)
+
+
 @router.post("/logout")
 def logout_user():
     response = RedirectResponse(url="/ui/login", status_code=303)
@@ -204,9 +290,18 @@ def upload_image_form(
     db: Session = Depends(get_db),
 ):
     types = db.query(ImageTypeModel).all()
-    return templates.TemplateResponse(
-        "image_form.html", {"request": request, "user": user, "image_types": types}
-    )
+    context = {
+        "request": request,
+        "user": user,
+        "image_types": types,
+        "image_dir_root": str(IMAGE_DIR.resolve()),
+        "import_result": None,
+        "import_error": None,
+        "directory_value": "",
+        "selected_image_type": None,
+        "recursive_flag": False,
+    }
+    return templates.TemplateResponse("image_form.html", context)
 
 
 @router.post(
@@ -226,6 +321,42 @@ async def upload_image(
     return RedirectResponse(url="/ui/images", status_code=303)
 
 
+
+
+@router.post("/images/import")
+def bulk_import_images(
+    request: Request,
+    directory: str = Form(...),
+    image_type_id: int = Form(...),
+    recursive: bool = Form(False),
+    user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    types = db.query(ImageTypeModel).all()
+    context = {
+        "request": request,
+        "user": user,
+        "image_types": types,
+        "image_dir_root": str(IMAGE_DIR.resolve()),
+        "directory_value": directory,
+        "selected_image_type": image_type_id,
+        "recursive_flag": recursive,
+    }
+    try:
+        result = perform_bulk_import(
+            directory=directory,
+            image_type_id=image_type_id,
+            recursive=recursive,
+            db=db,
+        )
+        context.update({"import_result": result, "import_error": None})
+        status_code = 200
+    except HTTPException as exc:
+        context.update({"import_result": None, "import_error": exc.detail})
+        status_code = exc.status_code
+    return templates.TemplateResponse("image_form.html", context, status_code=status_code)
+
+
 @router.get("/images/{image_id}", response_class=HTMLResponse)
 def view_image(
     image_id: int,
@@ -233,9 +364,19 @@ def view_image(
     user: UserModel = Depends(require_user),
     db: Session = Depends(get_db),
 ):
-    image = db.query(ImageModel).filter_by(id=image_id).first()
+    image = (
+        db.query(ImageModel)
+        .options(joinedload(ImageModel.image_type))
+        .filter_by(id=image_id)
+        .first()
+    )
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
+    try:
+        relative_path = Path(image.path).resolve().relative_to(IMAGE_DIR.resolve())
+        image_url = f"/image_data/{relative_path.as_posix()}"
+    except Exception:
+        image_url = f"/image_data/{image.filename}"
     # Determine previous and next image IDs for navigation
     prev_row = (
         db.query(ImageModel.id)
@@ -251,15 +392,27 @@ def view_image(
     )
     prev_id = prev_row[0] if prev_row else None
     next_id = next_row[0] if next_row else None
-    questions_query = db.query(QuestionModel)
+    questions_query = db.query(QuestionModel).options(joinedload(QuestionModel.options))
     if image.image_type_id:
         questions_query = questions_query.join(QuestionModel.image_types).filter(
             ImageTypeModel.id == image.image_type_id
         )
+    questions_query = questions_query.order_by(QuestionModel.id.asc())
     questions = questions_query.all()
-    for q in questions:
-        _ = q.options
-
+    questions_payload = [
+        {
+            "id": q.id,
+            "text": q.question_text,
+            "options": [
+                {"id": opt.id, "text": opt.option_text}
+                for opt in q.options
+            ],
+            "depends_on_question_id": q.depends_on_question_id,
+            "depends_on_option_id": q.depends_on_option_id,
+            "order": index,
+        }
+        for index, q in enumerate(questions)
+    ]
     answers = (
         db.query(AnswerModel)
         .filter_by(image_id=image_id, user_id=user.id)
@@ -291,7 +444,9 @@ def view_image(
         {
             "request": request,
             "image": image,
+            "image_url": image_url,
             "questions": questions,
+            "questions_data": questions_payload,
             "user": user,
             "token": token,
             "answer_map": answer_map,
@@ -690,10 +845,25 @@ def create_option_form(
     question_id: int,
     request: Request,
     user: UserModel = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
-    return templates.TemplateResponse(
-        "option_form.html", {"request": request, "question_id": question_id, "user": user}
+    question = db.query(QuestionModel).filter_by(id=question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
+    available_questions = (
+        db.query(QuestionModel)
+        .filter(QuestionModel.id != question_id)
+        .order_by(QuestionModel.id.asc())
+        .all()
     )
+    context = {
+        "request": request,
+        "question": question,
+        "user": user,
+        "available_questions": available_questions,
+        "selected_follow_up_ids": set(),
+    }
+    return templates.TemplateResponse("option_form.html", context)
 
 
 @router.post(
@@ -703,10 +873,16 @@ def create_option_form(
 def create_option(
     question_id: int,
     option_text: str = Form(...),
+    follow_up_question_ids: List[int] = Form([]),
     db: Session = Depends(get_db),
 ):
+    question = db.query(QuestionModel).filter_by(id=question_id).first()
+    if not question:
+        raise HTTPException(status_code=404, detail="Question not found")
     option = OptionModel(question_id=question_id, option_text=option_text)
     db.add(option)
+    db.flush()
+    _update_option_follow_ups(db, option, follow_up_question_ids or [])
     db.commit()
     return RedirectResponse(url="/ui/questions", status_code=303)
 
@@ -721,12 +897,31 @@ def edit_option_form(
     user: UserModel = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    option = db.query(OptionModel).filter_by(id=option_id).first()
+    option = (
+        db.query(OptionModel)
+        .options(joinedload(OptionModel.follow_up_questions), joinedload(OptionModel.question))
+        .filter_by(id=option_id)
+        .first()
+    )
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
-    return templates.TemplateResponse(
-        "option_form.html", {"request": request, "option": option, "user": user}
+    question = option.question
+    available_questions = (
+        db.query(QuestionModel)
+        .filter(QuestionModel.id != question.id)
+        .order_by(QuestionModel.id.asc())
+        .all()
     )
+    selected_follow_up_ids = {q.id for q in option.follow_up_questions}
+    context = {
+        "request": request,
+        "option": option,
+        "question": question,
+        "user": user,
+        "available_questions": available_questions,
+        "selected_follow_up_ids": selected_follow_up_ids,
+    }
+    return templates.TemplateResponse("option_form.html", context)
 
 
 @router.post(
@@ -736,12 +931,14 @@ def edit_option_form(
 def edit_option(
     option_id: int,
     option_text: str = Form(...),
+    follow_up_question_ids: List[int] = Form([]),
     db: Session = Depends(get_db),
 ):
     option = db.query(OptionModel).filter_by(id=option_id).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
     option.option_text = option_text
+    _update_option_follow_ups(db, option, follow_up_question_ids or [])
     db.commit()
     return RedirectResponse(url="/ui/questions", status_code=303)
 
@@ -1058,3 +1255,5 @@ def delete_label(label_id: int, db: Session = Depends(get_db)):
         db.delete(label)
         db.commit()
     return RedirectResponse(url="/ui/labels", status_code=303)
+
+

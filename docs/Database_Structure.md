@@ -60,9 +60,13 @@ CREATE TABLE image_types (
 ```sql
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
-    question_text TEXT NOT NULL
+    question_text TEXT NOT NULL,
+    depends_on_question_id INTEGER REFERENCES questions(id) ON DELETE SET NULL,
+    depends_on_option_id INTEGER REFERENCES options(id) ON DELETE SET NULL
 );
 ```
+
+> I campi `depends_on_question_id` e `depends_on_option_id` implementano la logica condizionale: una domanda con questi campi valorizzati viene mostrata solo quando l'utente seleziona la specifica opzione (`depends_on_option_id`) della domanda padre (`depends_on_question_id`).
 
 ## 5. `options`
 

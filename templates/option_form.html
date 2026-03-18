@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{% if option %}Edit Option{% else %}New Option{% endif %}</h1>
-<form method="post" action="{% if option %}/ui/options/{{option.id}}/edit{% else %}/ui/questions/{{question_id}}/options/create{% endif %}">
-<div class="mb-3">
-    <label for="option_text" class="form-label">Option Text</label>
-    <input type="text" id="option_text" name="option_text" class="form-control" value="{{ option.option_text if option else '' }}">
-</div>
-<button type="submit" class="btn btn-primary">Save</button>
+{% set action_url = ("/ui/options/" ~ option.id ~ "/edit") if option else ("/ui/questions/" ~ question.id ~ "/options/create") %}
+<h1>{% if option %}Modifica opzione{% else %}Nuova opzione{% endif %}</h1>
+<p class="text-muted">Domanda di riferimento: <strong>{{ question.question_text }}</strong></p>
+<form method="post" action="{{ action_url }}">
+  <div class="mb-3">
+    <label for="option_text" class="form-label">Testo dell'opzione</label>
+    <input type="text" id="option_text" name="option_text" class="form-control" value="{{ option.option_text if option else '' }}" required>
+  </div>
+  <div class="mb-3">
+    <label for="follow_up_question_ids" class="form-label">Domande da mostrare dopo questa risposta</label>
+    {% if available_questions %}
+    <select id="follow_up_question_ids" name="follow_up_question_ids" class="form-select" multiple size="6">
+      {% for q in available_questions %}
+      <option value="{{ q.id }}" {% if q.id in selected_follow_up_ids %}selected{% endif %}>{{ q.question_text }}</option>
+      {% endfor %}
+    </select>
+    <div class="form-text">Seleziona una o più domande da visualizzare quando l'utente sceglie questa opzione. Lascia vuoto per non collegare domande.</div>
+    {% else %}
+    <p class="form-text text-muted">Non ci sono altre domande disponibili da collegare a questa opzione.</p>
+    {% endif %}
+  </div>
+  <button type="submit" class="btn btn-primary">Salva</button>
 </form>
 {% endblock %}

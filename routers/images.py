@@ -13,18 +13,36 @@ from fastapi import (
     Form,
     Response,
 )
+from sqlalchemy import false
 from sqlalchemy.orm import Session
 from PIL import Image as PILImage, ExifTags
 
 from database import get_db
 from models import Image as ImageModel, ImageType as ImageTypeModel, User as UserModel
-from schemas import Image as ImageSchema, ImageDetail, ImageUpdate
+from schemas import (Image as ImageSchema, ImageDetail, ImageUpdate, ImageBulkImportRequest, ImageBulkImportResult,)
 from main import get_current_user
 
 router = APIRouter()
 
 IMAGE_DIR = Path(os.getenv("IMAGE_DIR", "./image_data"))
 IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".tif", ".tiff", ".png", ".raw", ".nef", ".cr2", ".arw"}
+
+
+def filter_images_for_user(query, user: UserModel | None):
+    """Limit a SQLAlchemy query to images visible to the given user."""
+    if user is None or user.role == "Amministratore":
+        return query
+    allowed_type_ids = {
+        image_type.id
+        for expert_type in user.expert_types
+        for image_type in expert_type.image_types
+        if image_type.id is not None
+    }
+    if not allowed_type_ids:
+        return query.filter(false())
+    return query.filter(ImageModel.image_type_id.in_(allowed_type_ids))
 
 
 def _ratio_to_float(value):
@@ -101,37 +119,139 @@ def extract_exif(path: Path):
     return data
 
 
-def register_image(path: Path, db: Session, image_type_id: int | None = None):
-    filename = path.name
-    existing = db.query(ImageModel).filter_by(filename=filename).first()
-    exif_data = extract_exif(path)
+def register_image(
+    path: Path,
+    db: Session,
+    image_type_id: int | None = None,
+    *,
+    return_created: bool = False,
+) -> ImageModel | tuple[ImageModel, bool]:
+    resolved_path = path.resolve()
+    filename = resolved_path.name
+    existing = db.query(ImageModel).filter_by(path=str(resolved_path)).first()
+    if not existing:
+        existing = db.query(ImageModel).filter_by(filename=filename).first()
+    exif_data = extract_exif(resolved_path)
+    created = False
     if existing:
         for key, value in exif_data.items():
             setattr(existing, key, value)
-        existing.path = str(path)
+        existing.path = str(resolved_path)
         if image_type_id is not None:
             existing.image_type_id = image_type_id
         db.commit()
         db.refresh(existing)
-        return existing
-    db_image = ImageModel(
-        filename=filename,
-        path=str(path),
-        image_type_id=image_type_id,
-        **exif_data,
-    )
-    db.add(db_image)
-    db.commit()
-    db.refresh(db_image)
-    return db_image
+        result = existing
+    else:
+        db_image = ImageModel(
+            filename=filename,
+            path=str(resolved_path),
+            image_type_id=image_type_id,
+            **exif_data,
+        )
+        db.add(db_image)
+        db.commit()
+        db.refresh(db_image)
+        result = db_image
+        created = True
+    if return_created:
+        return result, created
+    return result
 
+
+
+def _ensure_directory_within_root(directory: Path, root: Path) -> Path:
+    resolved = directory.resolve()
+    root_resolved = root.resolve()
+    if resolved == root_resolved:
+        return resolved
+    try:
+        resolved.relative_to(root_resolved)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Directory non autorizzata: deve trovarsi sotto IMAGE_DIR")
+    return resolved
+
+
+def perform_bulk_import(
+    directory: str,
+    image_type_id: int,
+    recursive: bool,
+    db: Session,
+) -> dict:
+    image_type = db.query(ImageTypeModel).filter_by(id=image_type_id).first()
+    if not image_type:
+        raise HTTPException(status_code=404, detail="Image type not found")
+
+    input_path = Path(directory)
+    if not input_path.is_absolute():
+        input_path = IMAGE_DIR / input_path
+
+    target_dir = _ensure_directory_within_root(input_path, IMAGE_DIR)
+
+    if not target_dir.exists() or not target_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Directory non trovata")
+
+    iterator = target_dir.rglob("*") if recursive else target_dir.iterdir()
+
+    created = 0
+    updated = 0
+    skipped = 0
+    errors: list[dict[str, str]] = []
+
+    for entry in iterator:
+        if entry.is_dir():
+            continue
+        if entry.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+            skipped += 1
+            continue
+        try:
+            _, was_created = register_image(entry, db, image_type_id=image_type_id, return_created=True)
+            if was_created:
+                created += 1
+            else:
+                updated += 1
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
+            errors.append({"path": str(entry), "error": detail})
+            db.rollback()
+        except Exception as exc:
+            errors.append({"path": str(entry), "error": str(exc)})
+            db.rollback()
+
+    return {
+        "created": created,
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors,
+    }
+
+@router.post(
+    "/images/import-directory",
+    response_model=ImageBulkImportResult,
+    dependencies=[Depends(require_admin)],
+)
+def import_images_from_directory(
+    payload: ImageBulkImportRequest,
+    db: Session = Depends(get_db),
+):
+    result = perform_bulk_import(
+        directory=payload.directory,
+        image_type_id=payload.image_type_id,
+        recursive=payload.recursive,
+        db=db,
+    )
+    return result
 
 @router.get("/images", response_model=List[ImageSchema])
-def read_images(db: Session = Depends(get_db)):
+def read_images(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
     for file in IMAGE_DIR.iterdir():
         if file.is_file():
             register_image(file, db)
-    return db.query(ImageModel).all()
+    query = filter_images_for_user(db.query(ImageModel), current_user)
+    return query.all()
 
 
 @router.get("/images/{image_id}", response_model=ImageDetail)
@@ -199,3 +319,10 @@ def delete_image(image_id: int, db: Session = Depends(get_db)):
     db.delete(image)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+
+
+
+
+

@@ -1,0 +1,94 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1160" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1228"/>
+      <stop offset="0.55" stop-color="#1F306E"/>
+      <stop offset="1" stop-color="#6FA8FF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="221" y1="128" x2="769" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#DDEBFF"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#48D6B2"/>
+      <stop offset="1" stop-color="#2EA0FF"/>
+    </linearGradient>
+    <filter id="shadow" x="130" y="70" width="1020" height="520" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="28" flood-color="#091122" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" rx="36" fill="url(#bg)"/>
+  <circle cx="1084" cy="108" r="154" fill="#7CC6FF" fill-opacity="0.16"/>
+  <circle cx="116" cy="562" r="206" fill="#48D6B2" fill-opacity="0.12"/>
+  <path d="M0 516C162 436 284 422 386 454C520 496 670 592 866 566C1021 546 1146 459 1280 394V640H0V516Z" fill="#0A1536" fill-opacity="0.32"/>
+
+  <g opacity="0.18">
+    <path d="M142 106H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 166H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 226H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 286H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 346H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 406H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 466H1138" stroke="white" stroke-width="1"/>
+    <path d="M142 526H1138" stroke="white" stroke-width="1"/>
+    <path d="M202 66V574" stroke="white" stroke-width="1"/>
+    <path d="M302 66V574" stroke="white" stroke-width="1"/>
+    <path d="M402 66V574" stroke="white" stroke-width="1"/>
+    <path d="M502 66V574" stroke="white" stroke-width="1"/>
+    <path d="M602 66V574" stroke="white" stroke-width="1"/>
+    <path d="M702 66V574" stroke="white" stroke-width="1"/>
+    <path d="M802 66V574" stroke="white" stroke-width="1"/>
+    <path d="M902 66V574" stroke="white" stroke-width="1"/>
+    <path d="M1002 66V574" stroke="white" stroke-width="1"/>
+    <path d="M1102 66V574" stroke="white" stroke-width="1"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="160" y="100" width="960" height="440" rx="28" fill="white" fill-opacity="0.08"/>
+    <rect x="190" y="126" width="592" height="388" rx="24" fill="url(#panel)"/>
+    <rect x="222" y="158" width="528" height="324" rx="18" fill="#0F1D4A"/>
+    <rect x="246" y="182" width="480" height="276" rx="16" fill="#13245C"/>
+    <path d="M246 392L336 312L408 350L500 246L602 308L726 222V458H246V392Z" fill="#2C4E96"/>
+    <path d="M246 434L350 338L444 378L526 286L610 336L726 254V458H246V434Z" fill="#3E6DCC"/>
+    <path d="M246 458L352 372L446 410L540 318L626 364L726 292V458H246Z" fill="#77C9B6"/>
+
+    <path d="M314 250L412 214L468 298L358 334L314 250Z" fill="#FFB44D" fill-opacity="0.16" stroke="#FFB44D" stroke-width="4"/>
+    <circle cx="314" cy="250" r="6" fill="#FFB44D"/>
+    <circle cx="412" cy="214" r="6" fill="#FFB44D"/>
+    <circle cx="468" cy="298" r="6" fill="#FFB44D"/>
+    <circle cx="358" cy="334" r="6" fill="#FFB44D"/>
+
+    <path d="M520 228L612 194L656 274L546 318L520 228Z" fill="#4DE2C0" fill-opacity="0.16" stroke="#4DE2C0" stroke-width="4"/>
+    <circle cx="520" cy="228" r="6" fill="#4DE2C0"/>
+    <circle cx="612" cy="194" r="6" fill="#4DE2C0"/>
+    <circle cx="656" cy="274" r="6" fill="#4DE2C0"/>
+    <circle cx="546" cy="318" r="6" fill="#4DE2C0"/>
+
+    <rect x="816" y="126" width="272" height="388" rx="24" fill="#FFFFFF" fill-opacity="0.92"/>
+    <text x="846" y="174" fill="#1A2A62" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">Annotaria</text>
+    <text x="846" y="204" fill="#4A5A86" font-family="Segoe UI, Arial, sans-serif" font-size="15">Image annotation workspace</text>
+
+    <rect x="840" y="236" width="224" height="84" rx="18" fill="#EEF4FF"/>
+    <rect x="858" y="254" width="78" height="12" rx="6" fill="#1F306E"/>
+    <rect x="858" y="278" width="176" height="10" rx="5" fill="#98ADD8"/>
+    <rect x="858" y="298" width="152" height="10" rx="5" fill="#C0D1F2"/>
+    <rect x="992" y="252" width="48" height="48" rx="14" fill="url(#accent)"/>
+    <path d="M1005 276L1018 289L1030 263" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="840" y="336" width="224" height="68" rx="18" fill="#F7FBFF"/>
+    <rect x="858" y="354" width="102" height="10" rx="5" fill="#243A84"/>
+    <rect x="858" y="374" width="126" height="10" rx="5" fill="#A7BCE3"/>
+    <rect x="990" y="352" width="50" height="34" rx="10" fill="#DFF7F0"/>
+    <text x="1004" y="374" fill="#1A8D6A" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700">EXIF</text>
+
+    <rect x="840" y="420" width="224" height="62" rx="18" fill="#F7FBFF"/>
+    <rect x="858" y="440" width="84" height="10" rx="5" fill="#243A84"/>
+    <rect x="858" y="460" width="142" height="10" rx="5" fill="#A7BCE3"/>
+    <circle cx="1018" cy="450" r="18" fill="#FFF1D7"/>
+    <path d="M1010 450L1016 456L1028 444" stroke="#E2A33E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="164" y="74" fill="#E8F1FF" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">Annotaria</text>
+  <text x="290" y="74" fill="#B9CCF8" font-family="Segoe UI, Arial, sans-serif" font-size="18">Collect. Classify. Annotate.</text>
+</svg>

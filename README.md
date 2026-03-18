@@ -1,119 +1,135 @@
 # Annotaria
 
-**Annotaria** è un'applicazione web in Python per la raccolta e annotazione di dati da immagini, finalizzata alla creazione di dataset strutturati per l'addestramento di reti neurali.
+<p align="center">
+  <img src="./docs/assets/annotaria-banner.svg" alt="Annotaria banner" width="100%" />
+</p>
 
-______________________________________________________________________
+<p align="center"><strong>Annotaria</strong> e una piattaforma web per raccogliere, organizzare e annotare immagini con questionari strutturati, metadati EXIF e annotazioni poligonali.</p>
 
-## 📖 Panoramica
+<p align="center">
+  <a href="./docs/Setup.md">Setup</a> ·
+  <a href="./docs/Manuale_Utente.md">Manuale Utente</a> ·
+  <a href="./docs/API_REST.md">API REST</a> ·
+  <a href="./docs/Database_Structure.md">Database</a> ·
+  <a href="./docs/API_Examples.md">Esempi API</a>
+</p>
 
-- Supporta immagini **JPG, TIFF, RAW**, anche da **droni**.
-- Estrae e salva automaticamente i **metadati EXIF**.
-- Visualizza immagini da una **directory configurabile**.
-- Presenta domande a **scelta multipla**, comuni a tutte le immagini.
-- Permette annotazioni grafiche (bounding box) con **label associata**.
-- Salva risposte e annotazioni in un **database relazionale**.
-- Gestisce **tipologie di immagine** e ruoli degli esperti tramite endpoint dedicati.
-- Accesso autenticato tramite token **JWT**.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12+-1f306e?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/FastAPI-Web_App-0f766e?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI Web App" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-374151?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLAlchemy ORM" />
+  <img src="https://img.shields.io/badge/Docker-Optional-2563eb?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Optional" />
+</p>
 
-______________________________________________________________________
+Annotaria e pensata per team che devono trasformare immagini grezze in dataset coerenti e riusabili. Il flusso combina catalogazione delle immagini, assegnazione per competenze, compilazione di questionari guidati e salvataggio delle annotazioni in un database relazionale.
 
-## 🧱 Struttura dei file di documentazione
+## Highlights
 
-- [📂 API REST](./docs/API_REST.md)
-- [🗃️ Struttura del Database](./docs/Database_Structure.md)
-- [🧪 Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
-- [🧰 Configurazione e Ambiente](./docs/Setup.md) *(opzionale)*
+- Supporto a immagini `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.png`, `.raw`, `.nef`, `.cr2`, `.arw`
+- Estrazione automatica dei metadati EXIF, inclusi camera, timestamp e coordinate GPS quando disponibili
+- Annotazioni grafiche su canvas con poligoni associati a etichette
+- Questionari a risposta multipla con logiche di follow-up
+- Controllo accessi con autenticazione JWT e ruoli `Amministratore` / `Esperto`
+- Filtri di visibilita basati sulle competenze degli esperti
+- Interfaccia web integrata e API REST documentate da FastAPI
+- Supporto a `SQLite` e `PostgreSQL`
 
-______________________________________________________________________
+## Come Funziona
 
-## 🛠️ Tecnologie utilizzate
+1. L'amministratore importa o carica le immagini e assegna la tipologia corretta.
+2. Gli esperti selezionano le proprie competenze e visualizzano solo le immagini rilevanti.
+3. Ogni immagine puo essere valutata tramite questionario e annotazioni poligonali.
+4. Risposte, label e geometrie vengono salvate in database per analisi, revisione o training pipeline successive.
 
-- **Python 3.10+**
-- **FastAPI** per le API REST
-- **SQLAlchemy** (ORM)
-- **PostgreSQL** o **SQLite**
-- **HTML + JavaScript (Canvas/Fabric.js)** per annotazioni grafiche
-- **Docker** (opzionale, per ambienti isolati)
+## Stack
 
-______________________________________________________________________
+- Backend: `FastAPI`, `SQLAlchemy`, `Pydantic`
+- Auth: `OAuth2 password flow` con token `JWT`
+- Frontend: template server-side + `JavaScript` su canvas
+- Imaging: `Pillow` per lettura immagini e metadati
+- Database: `SQLite` di default, `PostgreSQL` supportato
+- Deploy: esecuzione diretta con `uvicorn` oppure container `Docker`
 
-## ▶️ Avvio rapido
+## Quick Start
 
-1. Crea un file `.env`:
-
-```dotenv
-DATABASE_URL=postgresql://user:password@localhost:5432/annotaria
-IMAGE_DIR=./image_data
-```
-
-2. Avvia l'applicazione:
+### Docker
 
 ```bash
-uvicorn main:app --reload
+docker compose build --no-cache
+docker compose up -d
 ```
 
-nohup python3.11 -m uvicorn main:app --host 0.0.0.0 --port 8001 > uvicorn.log 2>&1 &
+### Ambiente virtuale
 
-3. Visita: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-______________________________________________________________________
-
-## 🐳 Docker
-
-- Build immagine: `docker build -t annotaria .`
-- Esecuzione (SQLite): `docker run --rm -p 8000:8000 --env-file .env -v "$PWD/image_data:/app/image_data" annotaria`
-- docker compose (PostgreSQL): `docker compose up --build`
-
-Nota: dettagli e file inclusi (`Dockerfile`, `docker-compose.yml`) in AGENTS.md, sezione “Docker & Containers”.
-
-______________________________________________________________________
-
-## 📁 Struttura del progetto
-
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 9100
 ```
+
+Su Linux/macOS l'attivazione dell'ambiente diventa:
+
+```bash
+source venv/bin/activate
+```
+
+## Accesso Locale
+
+- UI: `http://localhost:9100/ui`
+- Docs API: `http://localhost:9100/docs`
+- Redirect root: `http://localhost:9100/` porta automaticamente alla UI
+
+Credenziali iniziali:
+
+- `admin` / `admin` come utente amministratore disponibile al primo avvio
+
+## Funzionalita Principali
+
+### Gestione immagini
+
+- upload singolo da interfaccia
+- import massivo da sottocartelle di `IMAGE_DIR`
+- sincronizzazione dei file con il database
+- memorizzazione dei metadati EXIF
+
+### Annotazione e revisione
+
+- disegno di poligoni direttamente sull'immagine
+- associazione delle annotazioni a label gestite a catalogo
+- consultazione e modifica centralizzata di risposte e annotazioni
+
+### Organizzazione del lavoro
+
+- tipologie immagine
+- tipologie esperto
+- assegnazione automatica delle immagini in base alle competenze
+- questionari con domande dipendenti dalle risposte precedenti
+
+## Struttura Del Progetto
+
+```text
 annotaria/
-│
-├── main.py                  # Entrypoint FastAPI
-├── database.py              # Configurazione SQLAlchemy
-├── models.py                # Definizione modelli database
-├── schemas/                 # Modelli Pydantic per le API
-├── static/                  # JS e CSS
-├── templates/               # Template HTML (opzionale)
-├── image_data/              # Cartella immagini configurabile
-├── data/questions.json      # Dataset domande iniziali
-└── docs/                    # Documentazione Markdown
-    ├── API_REST.md
-    ├── Database_Structure.md
-    └── Setup.md
+|-- main.py
+|-- database.py
+|-- models.py
+|-- routers/
+|-- schemas/
+|-- templates/
+|-- static/
+|-- image_data/
+|-- docs/
+`-- .env
 ```
 
-______________________________________________________________________
+## Documentazione
 
-Per creare un’annotazione poligonale:
+- [Setup e configurazione](./docs/Setup.md)
+- [Manuale utente](./docs/Manuale_Utente.md)
+- [API REST](./docs/API_REST.md)
+- [Esempi API](./docs/API_Examples.md)
+- [Struttura database](./docs/Database_Structure.md)
 
-Aggiunta dei vertici – ogni singolo click sul canvas aggiunge un punto alla forma in costruzione
+## Licenza
 
-Chiusura del poligono – un doppio click chiude il poligono:
-
-se sono stati inseriti meno di tre punti, i vertici vengono scartati;
-
-altrimenti compare una finestra di dialogo che elenca le label disponibili e consente di scegliere l’etichetta da associare
-
-In pratica, continua a cliccare per aggiungere vertici e, quando hai terminato, fai un doppio click: si aprirà il prompt in cui inserire (o selezionare) la label, completando così l’annotazione.
-______________________________________________________________________
-
-## 📈 Sviluppi futuri
-
-- Interfaccia amministrativa CRUD per immagini, domande, annotazioni
-- Versionamento immagini/annotazioni
-- Interfaccia Streamlit o frontend React
-- Esportazione dati per ML (CSV/JSON)
-- Container Docker (Dockerfile + docker-compose)
-
-______________________________________________________________________
-
-## 📝 Licenza
-
-Progetto open source sotto licenza MIT.
-
-______________________________________________________________________
+Distribuito come progetto open source sotto licenza MIT.

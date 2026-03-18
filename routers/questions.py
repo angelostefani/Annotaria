@@ -28,6 +28,38 @@ def require_admin(current_user: UserModel = Depends(get_current_user)):
     return current_user
 
 
+def _update_option_follow_ups(db: Session, option: OptionModel, follow_up_question_ids: List[int]) -> None:
+    """Assign or clear follow-up questions for the given option."""
+    valid_ids = {
+        int(qid) if isinstance(qid, str) and qid.isdigit() else qid
+        for qid in follow_up_question_ids
+        if (isinstance(qid, int) or (isinstance(qid, str) and qid.isdigit()))
+    }
+    valid_ids.discard(option.question_id)
+
+    current_questions = (
+        db.query(QuestionModel)
+        .filter(QuestionModel.depends_on_option_id == option.id)
+        .all()
+    )
+    current_ids = {question.id for question in current_questions}
+
+    ids_to_clear = current_ids - valid_ids
+    if ids_to_clear:
+        for question in db.query(QuestionModel).filter(QuestionModel.id.in_(ids_to_clear)):
+            question.depends_on_question_id = None
+            question.depends_on_option_id = None
+
+    if valid_ids:
+        for question in db.query(QuestionModel).filter(QuestionModel.id.in_(valid_ids)):
+            if question.id == option.question_id:
+                continue
+            question.depends_on_question_id = option.question_id
+            question.depends_on_option_id = option.id
+
+    db.flush()
+
+
 @router.post(
     "/questions/",
     response_model=QuestionSchema,
@@ -102,6 +134,9 @@ def create_option(
         raise HTTPException(status_code=404, detail="Question not found")
     db_option = OptionModel(question_id=question_id, option_text=option.option_text)
     db.add(db_option)
+    db.flush()
+    follow_up_ids = getattr(option, "follow_up_question_ids", []) or []
+    _update_option_follow_ups(db, db_option, follow_up_ids)
     db.commit()
     db.refresh(db_option)
     return db_option
@@ -119,6 +154,8 @@ def update_option(
     if not db_option:
         raise HTTPException(status_code=404, detail="Option not found")
     db_option.option_text = option.option_text
+    follow_up_ids = getattr(option, "follow_up_question_ids", []) or []
+    _update_option_follow_ups(db, db_option, follow_up_ids)
     db.commit()
     db.refresh(db_option)
     return db_option

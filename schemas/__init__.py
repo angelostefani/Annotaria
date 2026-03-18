@@ -1,6 +1,6 @@
 from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ImageTypeBase(BaseModel):
@@ -14,8 +14,7 @@ class ImageTypeCreate(ImageTypeBase):
 class ImageType(ImageTypeBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Image(BaseModel):
@@ -24,8 +23,7 @@ class Image(BaseModel):
     path: str
     image_type_id: int | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ImageDetail(Image):
@@ -76,6 +74,26 @@ class ImageUpdate(BaseModel):
     exif_yaw: float | None = None
 
 
+class ImageBulkImportRequest(BaseModel):
+    directory: str
+    image_type_id: int
+    recursive: bool = False
+
+
+class ImageBulkImportError(BaseModel):
+    path: str
+    error: str
+
+
+class ImageBulkImportResult(BaseModel):
+    created: int
+    updated: int
+    skipped: int
+    errors: List[ImageBulkImportError] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class QuestionBase(BaseModel):
     question_text: str
 
@@ -87,9 +105,10 @@ class QuestionCreate(QuestionBase):
 class Question(QuestionBase):
     id: int
     image_types: List[ImageType] = []
+    depends_on_question_id: int | None = None
+    depends_on_option_id: int | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OptionBase(BaseModel):
@@ -97,15 +116,15 @@ class OptionBase(BaseModel):
 
 
 class OptionCreate(OptionBase):
-    pass
+    follow_up_question_ids: List[int] = []
 
 
 class Option(OptionBase):
     id: int
     question_id: int
+    follow_up_question_ids: List[int] = []
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 from .answer import Answer, AnswerCreate

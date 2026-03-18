@@ -9,11 +9,17 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark navbar-annotaria shadow-sm mb-4">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/ui">Annotaria</a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <a class="navbar-brand" href="/ui">
+            <span class="brand-mark">A</span>
+            Annotaria
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center">
                 <li class="nav-item"><a class="nav-link" href="/ui/images">Images</a></li>
                 {% if user and user.role == 'Amministratore' %}
                 <li class="nav-item"><a class="nav-link" href="/ui/questions">Questions</a></li>
@@ -26,17 +32,18 @@
                 <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">My Expert Types</a></li>
                 {% endif %}
             </ul>
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center">
                 {% if user %}
                 <li class="nav-item">
-                    <span class="navbar-text me-2">Hello, {{ user.username }}</span>
+                    <span class="navbar-text user-pill">{{ user.username }}</span>
                 </li>
+                <li class="nav-item"><a class="nav-link" href="/ui/change-password">Cambia password</a></li>
                 {% if user.role == 'Esperto' %}
                 <li class="nav-item"><a class="nav-link" href="/ui/my-expert-types">Le mie tipologie</a></li>
                 {% endif %}
                 <li class="nav-item">
                     <form action="/ui/logout" method="post" class="d-inline">
-                        <button type="submit" class="btn btn-link nav-link">Logout</button>
+                        <button type="submit" class="btn btn-outline-light btn-sm ms-lg-3">Logout</button>
                     </form>
                 </li>
                 {% else %}
