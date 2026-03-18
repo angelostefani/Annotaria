@@ -1,96 +1,135 @@
 # Annotaria
 
-Annotaria è un'applicazione web per la raccolta e l'annotazione di dati da immagini, pensata per generare dataset strutturati utili all'addestramento di modelli di machine learning.
+<p align="center">
+  <img src="./docs/assets/annotaria-banner.svg" alt="Annotaria banner" width="100%" />
+</p>
 
-______________________________________________________________________
+<p align="center"><strong>Annotaria</strong> e una piattaforma web per raccogliere, organizzare e annotare immagini con questionari strutturati, metadati EXIF e annotazioni poligonali.</p>
 
-## Panoramica
+<p align="center">
+  <a href="./docs/Setup.md">Setup</a> ·
+  <a href="./docs/Manuale_Utente.md">Manuale Utente</a> ·
+  <a href="./docs/API_REST.md">API REST</a> ·
+  <a href="./docs/Database_Structure.md">Database</a> ·
+  <a href="./docs/API_Examples.md">Esempi API</a>
+</p>
 
-- Supporto a immagini **JPG, TIFF, RAW**, anche provenienti da droni.
-- Estrazione e salvataggio automatico dei metadati **EXIF**.
-- Visualizzazione immagini da una cartella configurabile.
-- Questionari a scelta multipla condivisi tra tutte le immagini.
-- Annotazioni grafiche con bounding box e label associata.
-- Persistenza di risposte e annotazioni su database relazionale.
-- Gestione tipologie di immagine e ruoli degli esperti tramite endpoint dedicati.
-- Accesso autenticato tramite token **JWT**.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.12+-1f306e?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12+" />
+  <img src="https://img.shields.io/badge/FastAPI-Web_App-0f766e?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI Web App" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-374151?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLAlchemy ORM" />
+  <img src="https://img.shields.io/badge/Docker-Optional-2563eb?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Optional" />
+</p>
 
-______________________________________________________________________
+Annotaria e pensata per team che devono trasformare immagini grezze in dataset coerenti e riusabili. Il flusso combina catalogazione delle immagini, assegnazione per competenze, compilazione di questionari guidati e salvataggio delle annotazioni in un database relazionale.
 
-## Documentazione
+## Highlights
 
-- [API REST](./docs/API_REST.md)
-- [Struttura del Database](./docs/Database_Structure.md)
-- [Esempi JSON e Test](./docs/API_Examples.md) *(opzionale)*
-- [Setup e Configurazione](./docs/Setup.md)
+- Supporto a immagini `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.png`, `.raw`, `.nef`, `.cr2`, `.arw`
+- Estrazione automatica dei metadati EXIF, inclusi camera, timestamp e coordinate GPS quando disponibili
+- Annotazioni grafiche su canvas con poligoni associati a etichette
+- Questionari a risposta multipla con logiche di follow-up
+- Controllo accessi con autenticazione JWT e ruoli `Amministratore` / `Esperto`
+- Filtri di visibilita basati sulle competenze degli esperti
+- Interfaccia web integrata e API REST documentate da FastAPI
+- Supporto a `SQLite` e `PostgreSQL`
 
-______________________________________________________________________
+## Come Funziona
 
-## Tecnologie
+1. L'amministratore importa o carica le immagini e assegna la tipologia corretta.
+2. Gli esperti selezionano le proprie competenze e visualizzano solo le immagini rilevanti.
+3. Ogni immagine puo essere valutata tramite questionario e annotazioni poligonali.
+4. Risposte, label e geometrie vengono salvate in database per analisi, revisione o training pipeline successive.
 
-- **Python 3.12**
-- **FastAPI**
-- **SQLAlchemy**
-- **PostgreSQL** o **SQLite**
-- **HTML + JavaScript (Canvas/Fabric.js)**
-- **Docker** (opzionale, consigliato in produzione)
+## Stack
 
-______________________________________________________________________
+- Backend: `FastAPI`, `SQLAlchemy`, `Pydantic`
+- Auth: `OAuth2 password flow` con token `JWT`
+- Frontend: template server-side + `JavaScript` su canvas
+- Imaging: `Pillow` per lettura immagini e metadati
+- Database: `SQLite` di default, `PostgreSQL` supportato
+- Deploy: esecuzione diretta con `uvicorn` oppure container `Docker`
 
-## Installazione e Avvio
+## Quick Start
 
 ### Docker
 
-```bash installazione
+```bash
 docker compose build --no-cache
-```
-```bash avvio
 docker compose up -d
 ```
 
-### Ambiente Virtuale (venv)
+### Ambiente virtuale
 
-1. Posizionati nella cartella del progetto.
-2. Crea l'ambiente virtuale:
-   - Linux/macOS: `python3.12 -m venv venv`
-   - Windows: `python -m venv venv`
-3. Attiva l'ambiente virtuale:
-   - Linux/macOS: `source venv/bin/activate`
-   - Windows: `venv\Scripts\activate`
-4. Installa le dipendenze: `pip install -r requirements.txt`
-5. Avvia il server FastAPI scegliendo una porta libera:
-   - Avvio semplice: `uvicorn main:app --host 0.0.0.0 --port 9100`
-   - Avvio in background (Linux/macOS): `nohup uvicorn main:app --host 0.0.0.0 --port 9100 > annotaria.log 2>&1 &`
-
-______________________________________________________________________
-
-## Credenziali Predefinite
-
-- Utente amministratore disponibile al primo avvio: `admin` / `admin`. Cambiare la password dopo l'accesso.
-- Gli utenti creati tramite interfaccia vengono assegnati al ruolo **Esperto**.
-
-______________________________________________________________________
-
-## Struttura del Progetto
-
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 9100
 ```
+
+Su Linux/macOS l'attivazione dell'ambiente diventa:
+
+```bash
+source venv/bin/activate
+```
+
+## Accesso Locale
+
+- UI: `http://localhost:9100/ui`
+- Docs API: `http://localhost:9100/docs`
+- Redirect root: `http://localhost:9100/` porta automaticamente alla UI
+
+Credenziali iniziali:
+
+- `admin` / `admin` come utente amministratore disponibile al primo avvio
+
+## Funzionalita Principali
+
+### Gestione immagini
+
+- upload singolo da interfaccia
+- import massivo da sottocartelle di `IMAGE_DIR`
+- sincronizzazione dei file con il database
+- memorizzazione dei metadati EXIF
+
+### Annotazione e revisione
+
+- disegno di poligoni direttamente sull'immagine
+- associazione delle annotazioni a label gestite a catalogo
+- consultazione e modifica centralizzata di risposte e annotazioni
+
+### Organizzazione del lavoro
+
+- tipologie immagine
+- tipologie esperto
+- assegnazione automatica delle immagini in base alle competenze
+- questionari con domande dipendenti dalle risposte precedenti
+
+## Struttura Del Progetto
+
+```text
 annotaria/
-├── main.py                  # Entrypoint FastAPI
-├── database.py              # Configurazione SQLAlchemy
-├── models.py                # Definizione modelli database
-├── routers/                 # Router FastAPI
-├── schemas/                 # Modelli Pydantic
-├── static/                  # Asset JS/CSS
-├── templates/               # Template HTML
-├── image_data/              # Archivio immagini configurabile
-├── docs/                    # Documentazione aggiuntiva
-└── .env                     # Configurazione ambiente
+|-- main.py
+|-- database.py
+|-- models.py
+|-- routers/
+|-- schemas/
+|-- templates/
+|-- static/
+|-- image_data/
+|-- docs/
+`-- .env
 ```
 
-______________________________________________________________________
+## Documentazione
+
+- [Setup e configurazione](./docs/Setup.md)
+- [Manuale utente](./docs/Manuale_Utente.md)
+- [API REST](./docs/API_REST.md)
+- [Esempi API](./docs/API_Examples.md)
+- [Struttura database](./docs/Database_Structure.md)
 
 ## Licenza
 
-Progetto open source distribuito sotto licenza MIT.
-
-______________________________________________________________________
+Distribuito come progetto open source sotto licenza MIT.

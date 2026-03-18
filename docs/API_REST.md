@@ -1,11 +1,16 @@
-# 📘 Documentazione API REST – Annotaria
+# Documentazione API REST – Annotaria
 
-Tutte le API restituiscono e accettano dati in formato JSON.\
+Tutte le API restituiscono e accettano dati in formato JSON.
 Prefisso base: `http://localhost:9100/`
+
+Gli endpoint contrassegnati con **(auth)** richiedono il token JWT nell'header:
+`Authorization: Bearer <token>`
+
+Gli endpoint contrassegnati con **(admin)** richiedono ruolo `Amministratore`.
 
 ______________________________________________________________________
 
-## 👤 AUTENTICAZIONE
+## AUTENTICAZIONE
 
 ### `POST /users/`
 
@@ -27,7 +32,8 @@ Registra un nuovo utente. Il campo `role` è opzionale e di default è `"Esperto
 {
   "id": 1,
   "username": "alice",
-  "role": "Esperto"
+  "role": "Esperto",
+  "expert_types": []
 }
 ```
 
@@ -50,15 +56,50 @@ username=<username>&password=<password>
 }
 ```
 
-Per le rotte che richiedono autenticazione inviare l'header:
+### `GET /users/me` (auth)
 
-`Authorization: Bearer <token>`
+Restituisce i dati dell'utente autenticato.
 
-## 📁 IMMAGINI
+**Response 200 OK**
 
-### `GET /images`
+```json
+{
+  "id": 1,
+  "username": "alice",
+  "role": "Esperto",
+  "expert_types": [{"id": 1, "name": "Agronomo"}]
+}
+```
 
-Restituisce l’elenco delle immagini disponibili nella directory configurata e sincronizza il DB.
+### `POST /users/me/password` (auth)
+
+Cambia la password dell'utente autenticato. La nuova password deve avere almeno 8 caratteri e deve essere diversa da quella attuale.
+
+**Request Body**
+
+```json
+{
+  "current_password": "vecchia",
+  "new_password": "nuova1234",
+  "new_password_confirm": "nuova1234"
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "detail": "Password updated"
+}
+```
+
+______________________________________________________________________
+
+## IMMAGINI
+
+### `GET /images` (auth)
+
+Restituisce l'elenco delle immagini visibili all'utente autenticato e sincronizza il DB con la directory `IMAGE_DIR`. Gli Esperti vedono solo le immagini delle tipologie associate alle proprie competenze; gli Amministratori vedono tutto.
 
 **Response 200 OK**
 
@@ -67,17 +108,17 @@ Restituisce l’elenco delle immagini disponibili nella directory configurata e 
   {
     "id": 1,
     "filename": "immagine1.jpg",
-    "url": "/static/immagine1.jpg",
+    "path": "/app/image_data/immagine1.jpg",
+    "image_type_id": 1,
     "exif_camera_model": "DJI Mavic Air 2",
-    "exif_datetime": "2025-07-31 14:30:00",
-    "image_type_id": 1
+    "exif_datetime": "2025-07-31 14:30:00"
   }
 ]
 ```
 
-### `POST /images/upload`
+### `POST /images/upload` (auth, admin)
 
-Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF. È possibile specificare una Tipologia Immagine già esistente.
+Carica una nuova immagine salvandola sul server ed estrae i metadati EXIF. È possibile specificare una tipologia immagine già esistente.
 
 **Request** `multipart/form-data`
 
@@ -92,12 +133,46 @@ image_type_id=1
 {
   "id": 2,
   "filename": "nuova.jpg",
-  "path": "./image_data/nuova.jpg",
+  "path": "/app/image_data/nuova.jpg",
   "image_type_id": 1,
   "exif_camera_model": "DJI Mavic Air 2",
   "exif_datetime": "2025-07-31 14:30:00"
 }
 ```
+
+### `POST /images/import-directory` (auth, admin)
+
+Importa in blocco tutte le immagini presenti in una directory (o ricorsivamente nelle sue sotto-directory). La directory deve essere una sotto-directory di `IMAGE_DIR`.
+
+**Request Body**
+
+```json
+{
+  "directory": "campagna_luglio",
+  "image_type_id": 1,
+  "recursive": true
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "created": 42,
+  "updated": 3,
+  "skipped": 1,
+  "errors": []
+}
+```
+
+| Campo | Descrizione |
+|-------|-------------|
+| `created` | Nuove immagini aggiunte al database |
+| `updated` | Immagini già presenti con metadati aggiornati |
+| `skipped` | File ignorati (estensione non supportata) |
+| `errors` | Array di `{"path": "...", "error": "..."}` per i file falliti |
+
+**Estensioni supportate**: `.jpg`, `.jpeg`, `.tif`, `.tiff`, `.png`, `.raw`, `.nef`, `.cr2`, `.arw`
 
 ### `GET /images/{image_id}`
 
@@ -109,7 +184,7 @@ Restituisce i dettagli di una singola immagine.
 {
   "id": 1,
   "filename": "immagine1.jpg",
-  "path": "./image_data/immagine1.jpg",
+  "path": "/app/image_data/immagine1.jpg",
   "exif_camera_model": "DJI Mavic Air 2",
   "image_type": {
     "id": 1,
@@ -118,9 +193,9 @@ Restituisce i dettagli di una singola immagine.
 }
 ```
 
-### `PUT /images/{image_id}`
+### `PUT /images/{image_id}` (auth, admin)
 
-Aggiorna i metadati di un’immagine esistente.
+Aggiorna i metadati di un'immagine esistente.
 
 **Request Body**
 
@@ -137,20 +212,20 @@ Aggiorna i metadati di un’immagine esistente.
 {
   "id": 1,
   "filename": "nuovo_nome.jpg",
-  "path": "./image_data/nuovo_nome.jpg",
+  "path": "/app/image_data/nuovo_nome.jpg",
   "image_type_id": 2
 }
 ```
 
-### `DELETE /images/{image_id}`
+### `DELETE /images/{image_id}` (auth, admin)
 
-Rimuove un’immagine dal database e dal filesystem.
+Rimuove un'immagine dal database e dal filesystem.
 
 **Response 204 No Content**
 
 ______________________________________________________________________
 
-## 🏷️ TIPOLOGIE IMMAGINE
+## TIPOLOGIE IMMAGINE
 
 ### `GET /image-types/`
 
@@ -167,7 +242,7 @@ Elenca tutte le tipologie immagine disponibili.
 ]
 ```
 
-### `POST /image-types/`
+### `POST /image-types/` (auth, admin)
 
 Crea una nuova tipologia immagine.
 
@@ -188,7 +263,7 @@ Crea una nuova tipologia immagine.
 }
 ```
 
-### `PUT /image-types/{type_id}`
+### `PUT /image-types/{type_id}` (auth, admin)
 
 Aggiorna il nome di una tipologia esistente.
 
@@ -209,7 +284,7 @@ Aggiorna il nome di una tipologia esistente.
 }
 ```
 
-### `DELETE /image-types/{type_id}`
+### `DELETE /image-types/{type_id}` (auth, admin)
 
 Elimina una tipologia immagine.
 
@@ -217,7 +292,151 @@ Elimina una tipologia immagine.
 
 ______________________________________________________________________
 
-## ❓ DOMANDE E OPZIONI
+## TIPOLOGIE ESPERTO
+
+### `GET /expert-types/`
+
+Elenca tutte le tipologie esperto disponibili.
+
+**Response 200 OK**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Agronomo",
+    "image_types": [{"id": 1, "name": "Aerea"}]
+  }
+]
+```
+
+### `POST /expert-types/` (auth, admin)
+
+Crea una nuova tipologia esperto, con le tipologie immagine associate.
+
+**Request Body**
+
+```json
+{
+  "name": "Geologo",
+  "image_type_ids": [1, 2]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 2,
+  "name": "Geologo",
+  "image_types": [{"id": 1, "name": "Aerea"}, {"id": 2, "name": "Termica"}]
+}
+```
+
+### `PUT /expert-types/{type_id}` (auth, admin)
+
+Aggiorna nome e tipologie immagine associate a una tipologia esperto.
+
+**Request Body**
+
+```json
+{
+  "name": "Geologo senior",
+  "image_type_ids": [2]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 2,
+  "name": "Geologo senior",
+  "image_types": [{"id": 2, "name": "Termica"}]
+}
+```
+
+### `DELETE /expert-types/{type_id}` (auth, admin)
+
+Elimina una tipologia esperto e rimuove i collegamenti con utenti e tipologie immagine.
+
+**Response 204 No Content**
+
+______________________________________________________________________
+
+## ETICHETTE
+
+### `GET /labels/`
+
+Elenca tutte le etichette disponibili.
+
+**Response 200 OK**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Anomalia",
+    "image_types": [{"id": 1, "name": "Aerea"}]
+  }
+]
+```
+
+### `POST /labels/` (auth, admin)
+
+Crea una nuova etichetta. Il campo `image_type_ids` è opzionale.
+
+**Request Body**
+
+```json
+{
+  "name": "Danno struttura",
+  "image_type_ids": [1]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 2,
+  "name": "Danno struttura",
+  "image_types": [{"id": 1, "name": "Aerea"}]
+}
+```
+
+### `PUT /labels/{label_id}` (auth, admin)
+
+Aggiorna nome e tipologie immagine associate all'etichetta.
+
+**Request Body**
+
+```json
+{
+  "name": "Danno strutturale",
+  "image_type_ids": [1, 2]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 2,
+  "name": "Danno strutturale",
+  "image_types": [{"id": 1, "name": "Aerea"}, {"id": 2, "name": "Termica"}]
+}
+```
+
+### `DELETE /labels/{label_id}` (auth, admin)
+
+Elimina un'etichetta.
+
+**Response 204 No Content**
+
+______________________________________________________________________
+
+## DOMANDE E OPZIONI
 
 ### `GET /questions/`
 
@@ -229,31 +448,67 @@ Elenca tutte le domande presenti nel sistema.
 [
   {
     "id": 1,
-    "question_text": "Qual è lo stato della pianta?"
+    "question_text": "Qual è lo stato della pianta?",
+    "image_types": [{"id": 1, "name": "Aerea"}],
+    "depends_on_question_id": null,
+    "depends_on_option_id": null
   }
 ]
 ```
 
-### `POST /questions/`
+### `POST /questions/` (auth, admin)
 
-Crea una nuova domanda.
+Crea una nuova domanda. Il campo `image_type_ids` associa la domanda a una o più tipologie di immagine.
 
 **Request Body**
 
 ```json
 {
-  "question_text": "La pianta è infestata?"
+  "question_text": "La pianta è infestata?",
+  "image_type_ids": [1]
 }
 ```
 
-**Response 201 Created**
+**Response 200 OK**
 
 ```json
 {
   "id": 5,
-  "question_text": "La pianta è infestata?"
+  "question_text": "La pianta è infestata?",
+  "image_types": [{"id": 1, "name": "Aerea"}],
+  "depends_on_question_id": null,
+  "depends_on_option_id": null
 }
 ```
+
+### `PUT /questions/{question_id}` (auth, admin)
+
+Aggiorna il testo e le tipologie immagine associate a una domanda.
+
+**Request Body**
+
+```json
+{
+  "question_text": "La pianta mostra segni di infestazione?",
+  "image_type_ids": [1, 2]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 5,
+  "question_text": "La pianta mostra segni di infestazione?",
+  "image_types": [{"id": 1, "name": "Aerea"}, {"id": 2, "name": "Termica"}]
+}
+```
+
+### `DELETE /questions/{question_id}` (auth, admin)
+
+Elimina una domanda e le sue opzioni.
+
+**Response 204 No Content**
 
 ### `GET /questions/{question_id}/options`
 
@@ -265,46 +520,106 @@ Restituisce tutte le opzioni associate a una domanda.
 [
   {
     "id": 10,
-    "option_text": "Sì"
+    "question_id": 5,
+    "option_text": "Sì",
+    "follow_up_question_ids": [6]
   },
   {
     "id": 11,
-    "option_text": "No"
+    "question_id": 5,
+    "option_text": "No",
+    "follow_up_question_ids": []
   }
 ]
 ```
 
-### `POST /questions/{question_id}/options`
+### `POST /questions/{question_id}/options` (auth, admin)
 
-Aggiunge una nuova opzione a una domanda esistente.
+Aggiunge una nuova opzione a una domanda esistente. Il campo `follow_up_question_ids` specifica quali domande mostrare quando questa opzione viene selezionata (logica condizionale).
 
 **Request Body**
 
 ```json
 {
-  "option_text": "Non determinabile"
+  "option_text": "Non determinabile",
+  "follow_up_question_ids": []
 }
 ```
 
-**Response 201 Created**
+**Response 200 OK**
 
 ```json
 {
   "id": 12,
   "question_id": 5,
-  "option_text": "Non determinabile"
+  "option_text": "Non determinabile",
+  "follow_up_question_ids": []
 }
 ```
 
+### `PUT /options/{option_id}` (auth, admin)
+
+Aggiorna il testo e le domande follow-up di un'opzione.
+
+**Request Body**
+
+```json
+{
+  "option_text": "Incerto",
+  "follow_up_question_ids": [7]
+}
+```
+
+**Response 200 OK**
+
+```json
+{
+  "id": 12,
+  "question_id": 5,
+  "option_text": "Incerto",
+  "follow_up_question_ids": [7]
+}
+```
+
+### `DELETE /options/{option_id}` (auth, admin)
+
+Elimina un'opzione.
+
+**Response 204 No Content**
+
+### `GET /questions/{question_id}/image-types`
+
+Restituisce le tipologie immagine associate a una domanda.
+
+**Response 200 OK**
+
+```json
+[
+  {"id": 1, "name": "Aerea"}
+]
+```
+
+### `POST /questions/{question_id}/image-types/{image_type_id}` (auth, admin)
+
+Aggiunge una tipologia immagine alla domanda.
+
+**Response 200 OK** — restituisce la domanda aggiornata.
+
+### `DELETE /questions/{question_id}/image-types/{image_type_id}` (auth, admin)
+
+Rimuove una tipologia immagine dalla domanda.
+
+**Response 204 No Content**
+
 ______________________________________________________________________
 
-## 📝 RISPOSTE
+## RISPOSTE
 
-Richiede autenticazione; l'utente associato viene determinato dal token presente nell'header `Authorization: Bearer <token>`.
+Richiedono autenticazione; l'utente associato viene determinato dal token nell'header `Authorization: Bearer <token>`.
 
-### `POST /answers/`
+### `POST /answers/` (auth)
 
-Registra la risposta fornita per una determinata immagine e domanda. L'associazione all'utente è automatica e non va specificato `user_id` nel body.
+Registra la risposta per una determinata immagine e domanda. L'associazione all'utente è automatica. Se l'utente ha già risposto alla stessa domanda sulla stessa immagine, la risposta viene aggiornata (upsert).
 
 **Request Body**
 
@@ -316,7 +631,7 @@ Registra la risposta fornita per una determinata immagine e domanda. L'associazi
 }
 ```
 
-**Response 201 Created**
+**Response 200 OK**
 
 ```json
 {
@@ -324,19 +639,39 @@ Registra la risposta fornita per una determinata immagine e domanda. L'associazi
   "image_id": 1,
   "question_id": 5,
   "selected_option_id": 12,
+  "user_id": 1,
   "answered_at": "2025-08-01T15:12:00"
 }
 ```
 
+### `GET /answers/{image_id}` (auth)
+
+Restituisce tutte le risposte dell'utente autenticato per una determinata immagine.
+
+**Response 200 OK**
+
+```json
+[
+  {
+    "id": 33,
+    "image_id": 1,
+    "question_id": 5,
+    "selected_option_id": 12,
+    "user_id": 1,
+    "answered_at": "2025-08-01T15:12:00"
+  }
+]
+```
+
 ______________________________________________________________________
 
-## 🎯 ANNOTAZIONI
+## ANNOTAZIONI
 
-Richiede autenticazione; le annotazioni vengono collegate all'utente identificato dal token nell'header `Authorization`.
+Richiedono autenticazione; le annotazioni vengono collegate all'utente identificato dal token nell'header `Authorization`.
 
-### `POST /annotations/`
+### `POST /annotations/` (auth)
 
-Salva un’annotazione su un'immagine selezionata (poligono + label predefinita). `user_id` è gestito automaticamente.
+Salva un'annotazione su un'immagine selezionata (poligono + etichetta). `user_id` è gestito automaticamente.
 
 **Request Body**
 
@@ -352,7 +687,7 @@ Salva un’annotazione su un'immagine selezionata (poligono + label predefinita)
 }
 ```
 
-**Response 201 Created**
+**Response 200 OK**
 
 ```json
 {
@@ -365,11 +700,12 @@ Salva un’annotazione su un'immagine selezionata (poligono + label predefinita)
     {"x": 170.5, "y": 82.0},
     {"x": 160.0, "y": 120.0}
   ],
+  "user_id": 1,
   "annotated_at": "2025-08-01T15:14:00"
 }
 ```
 
-### `GET /annotations/{image_id}`
+### `GET /annotations/{image_id}` (auth)
 
 Restituisce tutte le annotazioni dell'utente autenticato per una determinata immagine.
 
@@ -387,12 +723,13 @@ Restituisce tutte le annotazioni dell'utente autenticato per una determinata imm
       {"x": 170.5, "y": 82.0},
       {"x": 160.0, "y": 120.0}
     ],
+    "user_id": 1,
     "annotated_at": "2025-08-01T15:14:00"
   }
 ]
 ```
 
-### `PUT /annotations/{annotation_id}`
+### `PUT /annotations/{annotation_id}` (auth)
 
 Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modificati.
 
@@ -422,6 +759,7 @@ Aggiorna un'annotazione esistente. Solo i campi forniti nel body vengono modific
     {"x": 170.5, "y": 82.0},
     {"x": 160.0, "y": 120.0}
   ],
+  "user_id": 1,
   "annotated_at": "2025-08-01T15:14:00"
 }
 ```
